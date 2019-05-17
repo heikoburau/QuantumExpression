@@ -21,6 +21,8 @@ static const int fermion_table[] = {
 
 
 struct FermionOperator {
+    using Configuration = uint64_t;
+
     int type;
 
     FermionOperator(const int type) : type(type) {}
@@ -53,6 +55,28 @@ struct FermionOperator {
             return FermionOperator(2);
         }
         return FermionOperator(0);
+    }
+
+    inline pair<Configuration, complex<double>> apply(const Configuration& configuration, const int index) const {
+        Configuration mask = 1 << index;
+
+        if(this->type == 1) {
+            if(configuration & mask) {
+                return {configuration, 0.0};
+            }
+            return {configuration | mask, 1.0};
+        }
+        if(this->type == 2) {
+            if(!(configuration & mask)) {
+                return {configuration, 0.0};
+            }
+            return {configuration & ~mask, 1.0};
+        }
+        if(this->type == 3) {
+            return {configuration, configuration & mask ? 1.0 : 0.0};
+        }
+
+        return {configuration, 1.0};
     }
 
     inline bool operator==(const FermionOperator& other) const {

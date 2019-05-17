@@ -21,6 +21,8 @@ static const int pauli_table[] = {
 
 
 struct PauliOperator {
+    using Configuration = Spins;
+
     int type;
 
     PauliOperator(const int type) : type(type) {}

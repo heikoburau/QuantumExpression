@@ -1,6 +1,7 @@
 #define CATCH_CONFIG_MAIN
 
 #include "QuantumExpression.hpp"
+#include "functions.hpp"
 #include "catch2/catch.hpp"
 #include <iostream>
 #include <math.h>
@@ -8,6 +9,8 @@
 using namespace quantum_expression;
 using namespace std;
 using namespace std::complex_literals;
+
+using imap = map<int, int>;
 
 
 TEST_CASE("Test PauliString") {
@@ -121,15 +124,15 @@ TEST_CASE("Test PauliExpression") {
     REQUIRE(PauliExpression(1.0) == 1.0);
     REQUIRE(PauliExpression(0.0) != 1.0);
     REQUIRE(PauliExpression(1.0) != 2.0);
-    REQUIRE(PauliExpression(1.0, {{2, 2}}) != 1.0);
+    REQUIRE(PauliExpression(imap{{2, 2}}) != 1.0);
 
     REQUIRE(PauliExpression().is_numeric());
     REQUIRE(PauliExpression(0.0).is_numeric());
     REQUIRE(PauliExpression(1.0).is_numeric());
-    REQUIRE(!PauliExpression(1.0, {{3, 3}}).is_numeric());
+    REQUIRE(!PauliExpression(imap{{3, 3}}).is_numeric());
 
     REQUIRE(PauliExpression(5.0).get_coefficient() == 5.0+0i);
-    REQUIRE(PauliExpression(3.0+3.0i, {{3, 3}, {0, 1}}).get_coefficient() == 3.0+3i);
+    REQUIRE(((3.0+3.0i) * PauliExpression(imap{{3, 3}, {0, 1}})).get_coefficient() == 3.0+3i);
 }
 
 TEST_CASE("Test rotate by") {
@@ -214,9 +217,9 @@ TEST_CASE("Test apply operator on spins") {
 
 TEST_CASE("Test extract_noncommuting_with") {
     PauliExpression a(1.0);
-    const auto b = PauliExpression(1.0, {{0, 2}}) + PauliExpression(1.0, {{2, 2}});
-    const auto c = b + PauliExpression(1.0, {{4, 2}});
-    PauliExpression d(1.0, {{0, 1}, {2, 1}});
+    const auto b = PauliExpression(imap{{0, 2}}) + PauliExpression(imap{{2, 2}});
+    const auto c = b + PauliExpression(imap{{4, 2}});
+    PauliExpression d(imap{{0, 1}, {2, 1}});
 
     REQUIRE(a.extract_noncommuting_with(b) == PauliExpression());
     REQUIRE(b.extract_noncommuting_with(c) == PauliExpression());
@@ -224,9 +227,9 @@ TEST_CASE("Test extract_noncommuting_with") {
 }
 
 TEST_CASE("Test term iterator") {
-    PauliExpression a(1.0, {{0, 1}});
-    PauliExpression b(1.0, {{0, 2}});
-    PauliExpression c(1.0, {{0, 3}, {4, 2}});
+    PauliExpression a(imap{{0, 1}});
+    PauliExpression b(imap{{0, 2}});
+    PauliExpression c(imap{{0, 3}, {4, 2}});
 
     const auto e = a + b + c;
 
@@ -244,9 +247,9 @@ TEST_CASE("Test term iterator") {
 
 
 TEST_CASE("Test expectation_value_of_plus_x_state") {
-    PauliExpression a(1.0, {{0, 1}});
-    PauliExpression b(1.0, {{0, 2}});
-    PauliExpression c(1.0, {{0, 3}, {4, 2}});
+    PauliExpression a(imap{{0, 1}});
+    PauliExpression b(imap{{0, 2}});
+    PauliExpression c(imap{{0, 3}, {4, 2}});
 
     REQUIRE(PauliExpression(5.0).expectation_value_of_plus_x_state() == 5.0);
     REQUIRE(a.expectation_value_of_plus_x_state() == 1.0);
@@ -299,7 +302,7 @@ TEST_CASE("Test FermionExpression") {
     REQUIRE(a + a - a * 2.0 == FermionExpression());
     REQUIRE(b + b - 2.0 * b == FermionExpression());
 
-    REQUIRE(c * b == -0.5 * FermionExpression{
+    REQUIRE(c * b == 0.5 * FermionExpression{
         {FermionString{{0, 'a'}, {1, 'c'}, {6, 'c'}}, 1.0},
     });
 
@@ -318,13 +321,13 @@ TEST_CASE("Test FermionExpression") {
     REQUIRE(FermionExpression(1.0) == 1.0);
     REQUIRE(FermionExpression(0.0) != 1.0);
     REQUIRE(FermionExpression(1.0) != 2.0);
-    REQUIRE(FermionExpression(1.0, {{2, 2}}) != 1.0);
+    REQUIRE(FermionExpression(imap{{2, 2}}) != 1.0);
 
     REQUIRE(FermionExpression().is_numeric());
     REQUIRE(FermionExpression(0.0).is_numeric());
     REQUIRE(FermionExpression(1.0).is_numeric());
-    REQUIRE(!FermionExpression(1.0, {{3, 3}}).is_numeric());
+    REQUIRE(!FermionExpression(imap{{3, 3}}).is_numeric());
 
     REQUIRE(FermionExpression(5.0).get_coefficient() == 5.0+0i);
-    REQUIRE(FermionExpression(3.0+3.0i, {{3, 3}, {0, 1}}).get_coefficient() == 3.0+3i);
+    REQUIRE(FermionExpression({{3, 3}, {0, 1}}, 3.0+3.0i).get_coefficient() == 3.0+3i);
 }

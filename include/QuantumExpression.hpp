@@ -3,8 +3,12 @@
 #include "QuantumString.hpp"
 #include "Spins.hpp"
 
+#ifndef NO_PYTHON
+
 #define FORCE_IMPORT_ARRAY
 #include "xtensor-python/pytensor.hpp"
+
+#endif
 
 #include <unordered_map>
 #include <complex>
@@ -30,6 +34,7 @@ public:
     using QuantumString = QuantumString_t;
     using Coefficient = Coefficient_t;
     using This = QuantumExpression<QuantumString, Coefficient>;
+    using Configuration = typename QuantumString::Configuration;
 
     typedef pair<QuantumString, Coefficient> Term;
     typedef unordered_multimap<
@@ -57,12 +62,12 @@ public:
     QuantumExpression(const Coefficient& coefficient) {
         this->insert({QuantumString(), coefficient});
     }
-    inline QuantumExpression(const QuantumString& quantum_string, const Coefficient& coefficient) {
+    inline explicit QuantumExpression(const QuantumString& quantum_string, const Coefficient& coefficient) {
         if(coefficient != 0.0) {
             this->insert({quantum_string, coefficient});
         }
     }
-    inline QuantumExpression(const map<int, int>& quantum_string_map) {
+    inline explicit QuantumExpression(const map<int, int>& quantum_string_map) {
         map<int, int> cleaned_quantum_string_map;
         for(const auto& index_and_type : quantum_string_map) {
             if(index_and_type.second >= 1 && index_and_type.second <= 3) {
@@ -86,7 +91,11 @@ public:
         result.terms.reserve(this->size());
 
         for(const auto& term : this->terms) {
-            result.insert({term.first.dagger(), conj(term.second)});
+            const auto string_and_prefactor = term.first.dagger();
+            const auto& str = string_and_prefactor.first;
+            const auto& prefactor = string_and_prefactor.second;
+
+            result.insert({str, prefactor * conj(term.second)});
         }
 
         return result;
@@ -132,7 +141,9 @@ public:
     }
 
     inline void insert(const Term& term) {
-        this->terms.insert(term);
+        if(term.second != 0.0) {
+            this->terms.insert(term);
+        }
     }
 
     string str() const {
@@ -140,9 +151,10 @@ public:
 
         forward_list<int> all_indices;
         for(const auto& term : *this) {
+            const auto indices = term.first.get_indices();
             copy(
-                term.first.indices.begin(),
-                term.first.indices.end(),
+                indices.begin(),
+                indices.end(),
                 front_inserter(all_indices)
             );
         }
@@ -167,12 +179,11 @@ public:
         for(const auto& term : sorted_terms) {
             result << right << setw(20) << term.second << " -> ";
             for(int i = min; i <= max; i++) {
-                auto search = term.first.operators.find(i);
-                if(search == term.first.operators.end()) {
-                    result << " ";
+                if(term.first.contains(i)) {
+                    result << term.first[i].str();
                 }
                 else {
-                    result << search->second.str();
+                    result << " ";
                 }
             }
             result << endl;
@@ -251,49 +262,11 @@ public:
 
         for(const auto& term : *this) {
             if(abs(term.second) >= threshold) {
-                result.insert(term);
+                result.terms.insert(term);
             }
         }
 
         return result;
-    }
-
-    inline This& rotate_by(const Term& generator_term, const double threshold=0.0) {
-        This additional_terms;
-
-        for(auto& my_term : *this) {
-            if(my_term.first.commutes_with(generator_term.first))
-                continue;
-
-            const double angle = 2.0 * generator_term.second.imag();
-            // CAUTION: this is only valid for PauliExpressions
-            const auto quantum_string_and_prefactor = (generator_term.first * my_term.first).front();
-
-            const auto new_term = This(
-                quantum_string_and_prefactor.first,
-                quantum_string_and_prefactor.second * 1i * sin(angle) * my_term.second
-            );
-
-            additional_terms += new_term;
-
-            my_term.second *= cos(angle);
-        }
-
-        *this += additional_terms;
-
-        if(threshold > 0.0) {
-            *this = this->apply_threshold(threshold);
-        }
-
-        return *this;
-    }
-
-    inline This& rotate_by(const This& generator, const double threshold=0.0) {
-        for(const auto& generator_term : generator) {
-            this->rotate_by(generator_term, threshold);
-        }
-
-        return *this;
     }
 
     inline This exp(const double threshold=0.0) const {
@@ -319,7 +292,7 @@ public:
         return result;
     }
 
-    inline This fast_rotate_by(const This& generator, const double threshold=0.0) const {
+    inline This rotate_by(const This& generator, const double threshold=0.0) const {
         if(this->is_numeric()) {
             return This(this->get_coefficient());
         }
@@ -363,27 +336,35 @@ public:
     }
 
     inline double max_norm() const {
+        if(this->terms.empty()) {
+            return 0.0;
+        }
         return abs(this->max_term().begin()->second);
     }
 
     inline double absolute() const {
+        if(this->terms.empty()) {
+            return 0.0;
+        }
         return abs(this->begin()->second);
     }
 
-    inline decltype(auto) apply(const Spins& spins) const {
-        forward_list<pair<Spins, Coefficient>> result;
+    inline decltype(auto) apply(const Configuration& conf) const {
+        forward_list<pair<Configuration, Coefficient>> result;
 
         for(const auto& term : *this) {
-            const auto spins_and_factor = term.first.apply(spins);
+            const auto conf_and_factor = term.first.apply(conf);
 
-            result.push_front({spins_and_factor.first, term.second * spins_and_factor.second});
+            result.push_front({conf_and_factor.first, term.second * conf_and_factor.second});
         }
 
         return result;
     }
 
+#ifndef NO_PYTHON
+
     decltype(auto) matrix(const unsigned int N) const {
-        const auto dim_N = pow(2, N);
+        const auto dim_N = 1u << N;
 
         xt::pytensor<Coefficient, 2u> result({
             (long int)dim_N, (long int)dim_N
@@ -391,25 +372,42 @@ public:
         result = xt::zeros<Coefficient>(result.shape());
 
         for(auto configuration = 0u; configuration < dim_N; configuration++) {
-            Spins spins(configuration);
+            Configuration conf(configuration);
 
-            for(const auto& spins_and_value : this->apply(spins)) {
-                result(spins_and_value.first.configuration, spins.configuration) += spins_and_value.second;
+            for(const auto& conf_and_value : this->apply(conf)) {
+                if(conf_and_value.second != 0.0) {
+                    result(static_cast<unsigned int>(conf_and_value.first), configuration) += conf_and_value.second;
+                }
             }
         }
 
         return result;
     }
 
+#endif
+
     inline Coefficient trace(const unsigned int N) const {
         return pow(2, N) * (*this)[QuantumString()];
     }
 
     inline bool commutes_with(const This& other) const {
-        for(const auto& my_term : *this) {
-            for(const auto& other_term : other) {
-                if(!my_term.first.commutes_with(other_term.first)) {
-                    return false;
+        if(QuantumString::QuantumOperator::is_pauli_operator()) {
+            for(const auto& my_term : *this) {
+                for(const auto& other_term : other) {
+                    if(!my_term.first.commutes_with(other_term.first)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        else {
+            for(const auto& my_term : *this) {
+                for(const auto& other_term : other) {
+                    const auto a = This(my_term);
+                    const auto b = This(other_term);
+                    if(a * b - b * a != 0.0) {
+                        return false;
+                    }
                 }
             }
         }
@@ -420,10 +418,23 @@ public:
     inline This extract_noncommuting_with(const This& other) const {
         This result;
 
-        for(const auto& my_term : *this) {
-            for(const auto& other_term : other) {
-                if(!my_term.first.commutes_with(other_term.first)) {
-                    if(result.terms.find(my_term.first) == result.terms.end()) {
+        if(QuantumString::QuantumOperator::is_pauli_operator()) {
+            for(const auto& my_term : *this) {
+                for(const auto& other_term : other) {
+                    if(!my_term.first.commutes_with(other_term.first)) {
+                        if(result.terms.find(my_term.first) == result.terms.end()) {
+                            result.insert(my_term);
+                        }
+                    }
+                }
+            }
+        }
+        else {
+            for(const auto& my_term : *this) {
+                for(const auto& other_term : other) {
+                    const auto a = This(my_term);
+                    const auto b = This(other_term);
+                    if(a * b - b * a != 0.0) {
                         result.insert(my_term);
                     }
                 }
@@ -438,8 +449,8 @@ public:
 
         for(const auto& term : *this) {
             bool has_no_sigma_yz = true;
-            for(const auto& pauli : term.first.operators) {
-                if(pauli.second.type != 1u) {
+            for(const auto& symbol : term.first) {
+                if(symbol.op.type != 1u) {
                     has_no_sigma_yz = false;
                     break;
                 }
@@ -609,9 +620,10 @@ inline QuantumExpression<QuantumString, Coefficient> operator-(
 }
 
 template<typename QuantumString, typename Coefficient>
-inline QuantumExpression<QuantumString, Coefficient> operator*(
+inline QuantumExpression<QuantumString, Coefficient> mul(
     const QuantumExpression<QuantumString, Coefficient>& a,
-    const QuantumExpression<QuantumString, Coefficient>& b
+    const QuantumExpression<QuantumString, Coefficient>& b,
+    const double threshold = 0.0
 ) {
     QuantumExpression<QuantumString, Coefficient> result;
     result.terms.reserve(2 * a.terms.size() * b.terms.size());
@@ -620,6 +632,10 @@ inline QuantumExpression<QuantumString, Coefficient> operator*(
         QuantumExpression<QuantumString, Coefficient> a_times_b_term;
 
         for(const auto& a_term : a) {
+            if(abs(a_term.second * b_term.second) < threshold) {
+                continue;
+            }
+
             for(const auto& new_term : a_term.first * b_term.first) {
                 a_times_b_term += QuantumExpression<QuantumString, Coefficient>(
                     new_term.first,
@@ -632,6 +648,14 @@ inline QuantumExpression<QuantumString, Coefficient> operator*(
     }
 
     return result;
+}
+
+template<typename QuantumString, typename Coefficient>
+inline QuantumExpression<QuantumString, Coefficient> operator*(
+    const QuantumExpression<QuantumString, Coefficient>& a,
+    const QuantumExpression<QuantumString, Coefficient>& b
+) {
+    return mul(a, b);
 }
 
 template<typename QuantumString, typename Coefficient>
@@ -650,28 +674,6 @@ inline QuantumExpression<QuantumString, Coefficient> operator*(
     const QuantumExpression<QuantumString, Coefficient>& x
 ) {
     return x * number;
-}
-
-template<typename QuantumExpression_t>
-inline QuantumExpression_t commutator(
-    const QuantumExpression_t& a,
-    const QuantumExpression_t& b
-) {
-    QuantumExpression_t result;
-    result.terms.reserve(max(a.size(), b.size()));
-
-    for(const auto& a_term : a) {
-        for(const auto& b_term : b) {
-            if(!a_term.first.overlap(b_term.first).empty()) {
-                const QuantumExpression_t a_expression(a_term);
-                const QuantumExpression_t b_expression(b_term);
-
-                result += a_expression * b_expression - b_expression * a_expression;
-            }
-        }
-    }
-
-    return result;
 }
 
 

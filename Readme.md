@@ -19,10 +19,10 @@ Example
 from QuantumExpression import FermionExpression as fe
 from QuantumExpression import commutator, frobenius_norm
 
-L = 100
+L = 10
 
 # coding: 1 -> creation, 2 -> annihilation, 3 -> number
-H_0 = -1 / 2  * sum(
+H_0 = -1 / 2 * sum(
     (fe({i: 1, i + 1: 2}) + fe({i: 2, i + 1: 1})) for i in range(L - 1)
 ) + sum(
     fe({i: 3}) for i in range(L)
@@ -35,6 +35,5 @@ V = 0.1 * sum(
 
 H = H_0 + V
 
-print(frobenius_norm(commutator(H_0, H)))
-
+print(frobenius_norm(commutator(H_0, H), L))
 ```

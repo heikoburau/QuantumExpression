@@ -15,6 +15,7 @@
 #include <complex>
 #include <iterator>
 #include <tuple>
+#include <vector>
 #include <assert.h>
 
 
@@ -24,83 +25,139 @@ using namespace std;
 using namespace complex_literals;
 
 
-template<typename QuantumOperator>
+template<typename QuantumOperator_t>
 class QuantumString {
 public:
+    using QuantumOperator = QuantumOperator_t;
     using This = QuantumString<QuantumOperator>;
+    using Configuration = typename QuantumOperator::Configuration;
 
-    // TODO: check if multi-set/map is faster
-    set<int>                    indices;
-    // TODO: check if unordered_map is faster
-    map<int, QuantumOperator>   operators;
+    struct Symbol {
+        int             index;
+        QuantumOperator op;
 
-    struct operator_iterator
+        inline bool operator==(const Symbol& other) const {
+            return (this->index == other.index) && (this->op == other.op);
+        }
+
+        inline bool operator!=(const Symbol& other) const {
+            return (this->index != other.index) || (this->op != other.op);
+        }
+    };
+
+    using Symbols = vector<Symbol>;
+    Symbols symbols;
+
+    struct symbol_iterator
     : public
-    iterator<typename map<int, QuantumOperator>::const_iterator::iterator_category, pair<int, int>>,
-    map<int, QuantumOperator>::const_iterator
+    iterator<typename Symbols::const_iterator::iterator_category, pair<int, int>>,
+    Symbols::const_iterator
     {
-        operator_iterator(
-            const typename map<int, QuantumOperator>::const_iterator& base
-        ) : map<int, QuantumOperator>::const_iterator(base) {}
+        symbol_iterator(
+            const typename Symbols::const_iterator& base
+        ) : Symbols::const_iterator(base) {}
 
         inline pair<int, int> operator*() const {
-            const auto index_and_op = map<int, QuantumOperator>::const_iterator::operator*();
-            return {index_and_op.first, index_and_op.second.type};
+            const auto symbol = Symbols::const_iterator::operator*();
+            return {symbol.index, symbol.op.type};
         }
     };
 
 public:
     QuantumString() = default;
 
-    inline QuantumString(initializer_list<pair<int, QuantumOperator>> operators) {
-        for(const auto& x : operators) {
-            this->indices.insert(x.first);
-            this->operators.insert(x);
+    inline QuantumString(initializer_list<pair<int, QuantumOperator>> symbols) {
+        this->symbols.reserve(symbols.size());
+        for(const auto& x : symbols) {
+            this->symbols.push_back({x.first, x.second});
         }
+        this->sort_symbols();
     }
 
     inline QuantumString(
-        const map<int, QuantumOperator>& operators
-    ) : operators(operators) {
-        for(const auto& index_and_op : operators) {
-            this->indices.insert(index_and_op.first);
+        const vector<Symbol>& symbols
+    ) : symbols(symbols) {}
+
+    inline QuantumString(const map<int, int>& symbols) {
+        this->symbols.reserve(symbols.size());
+        for(const auto& symbol : symbols) {
+            this->symbols.push_back({symbol.first, QuantumOperator(symbol.second)});
         }
+        this->sort_symbols();
     }
 
-    inline QuantumString(const map<int, int>& operators) {
-        for(const auto& index_and_type : operators) {
-            this->indices.insert(index_and_type.first);
-            this->operators.insert({index_and_type.first, QuantumOperator(index_and_type.second)});
+    inline QuantumString(const map<int, char>& symbols) {
+        this->symbols.reserve(symbols.size());
+
+        for(const auto& symbol : symbols) {
+            this->symbols.push_back({symbol.first, QuantumOperator(symbol.second)});
         }
+        this->sort_symbols();
     }
 
-    inline QuantumString(const map<int, char>& operators) {
-        for(const auto& index_and_name : operators) {
-            this->indices.insert(index_and_name.first);
-            this->operators.insert({index_and_name.first, QuantumOperator(index_and_name.second)});
-        }
+    inline void sort_symbols() {
+        sort(
+            this->symbols.begin(),
+            this->symbols.end(),
+            [](const Symbol& a, const Symbol& b) {
+                return a.index < b.index;
+            }
+        );
     }
 
-    inline QuantumString dagger() const {
-        QuantumString result(*this);
+    inline void add_symbol(const Symbol& symbol) {
+        this->symbols.push_back(symbol);
+    }
 
-        for(auto& index_and_op : result.operators) {
-            index_and_op.second = index_and_op.second.dagger();
+    inline vector<int> get_indices() const {
+        vector<int> result;
+        result.reserve(this->symbols.size());
+        for(const auto& symbol : *this) {
+            result.push_back(symbol.index);
         }
 
         return result;
     }
 
+    inline pair<QuantumString, double> dagger() const {
+        QuantumString result(*this);
+
+        for(auto& symbol : result.symbols) {
+            symbol.op = symbol.op.dagger();
+        }
+
+        auto prefactor = 1.0;
+        if(!QuantumOperator::is_pauli_operator()) {
+
+            auto n = 0u;
+            for(const auto& symbol : result.symbols) {
+                if(symbol.op.type == 1u || symbol.op.type == 2u) {
+                    n++;
+                }
+            }
+
+            if(n > 1) {
+                const auto num_permutations = ((n - 1) * n) / 2;
+
+                if(num_permutations % 2u == 1u) {
+                    prefactor = -1.0;
+                }
+            }
+        }
+
+        return {result, prefactor};
+    }
+
     inline bool operator==(const QuantumString& other) const {
-        return this->operators == other.operators;
+        return this->symbols == other.symbols;
     }
 
     inline bool operator!=(const QuantumString& other) const {
-        return this->operators != other.operators;
+        return this->symbols != other.symbols;
     }
 
     inline operator bool() const {
-        return !this->indices.empty();
+        return !this->symbols.empty();
     }
 
     inline bool cast_to_bool() const {
@@ -108,13 +165,17 @@ public:
     }
 
     inline size_t size() const {
-        return this->indices.size();
+        return this->symbols.size();
+    }
+
+    inline bool contains(const int index) const {
+        return count_if(this->symbols.begin(), this->symbols.end(), [=](const auto& s) {return s.index == index;}) > 0u;
     }
 
     string str() const {
         stringstream result;
 
-        if(this->indices.empty()) {
+        if(!(*this)) {
             result << "QuantumString \"\"\n";
             return result.str();
         }
@@ -124,12 +185,11 @@ public:
 
         result << "QuantumString " << min << " -> \"";
         for(int i = min; i <= max; i++) {
-            const auto search = this->operators.find(i);
-            if(search == this->operators.end()) {
-                result << " ";
+            if(this->contains(i)) {
+                result << (*this)[i].str();
             }
             else {
-                result << search->second.str();
+                result << " ";
             }
         }
         result << "\"";
@@ -137,40 +197,75 @@ public:
         return result.str();
     }
 
-    inline forward_list<int> overlap(const QuantumString& other) const {
-        forward_list<int> overlap;
+    inline forward_list<pair<Symbol, Symbol>> overlap(const QuantumString& other) const {
+        forward_list<pair<Symbol, Symbol>> overlap;
 
-        set_intersection(
-            this->indices.begin(), this->indices.end(),
-            other.indices.begin(), other.indices.end(),
-            front_inserter(overlap)
-        );
+        if(!(*this) || !other) {
+            return overlap;
+        }
+
+        if(
+            this->symbols.front().index > other.symbols.back().index ||
+            this->symbols.back().index < other.symbols.front().index
+        ) {
+            return overlap;
+        }
+
+        auto a_it = this->symbols.begin();
+        auto b_it = other.symbols.begin();
+
+        while(a_it != this->symbols.end() && b_it != other.symbols.end()) {
+            const auto a = *a_it;
+            const auto b = *b_it;
+
+            if(a.index == b.index) {
+                overlap.push_front({a, b});
+                a_it++;
+                b_it++;
+            }
+            else if(a.index < b.index) {
+                a_it++;
+            }
+            else {
+                b_it++;
+            }
+        }
 
         return overlap;
     }
 
-    inline forward_list<int> difference(const QuantumString& other) const {
-        forward_list<int> difference;
+    template<typename FunctionA, typename FunctionB, typename FunctionAB>
+    inline void loop_in_common(const QuantumString& other, FunctionA function_a, FunctionB function_b, FunctionAB function_ab) const {
+        auto a_it = this->symbols.begin();
+        auto b_it = other.symbols.begin();
 
-        set_symmetric_difference(
-            this->indices.begin(), this->indices.end(),
-            other.indices.begin(), other.indices.end(),
-            front_inserter(difference)
-        );
+        while(a_it != this->symbols.end() || b_it != other.symbols.end()) {
+            const auto a = a_it != this->symbols.end() ? *a_it : Symbol({100000, QuantumOperator(-1)});
+            const auto b = b_it != other.symbols.end() ? *b_it : Symbol({100000, QuantumOperator(-1)});
 
-        return difference;
+            if(a.index == b.index) {
+                if(!function_ab(a, b)) {
+                    return;
+                }
+                a_it++;
+                b_it++;
+            }
+            else if(a.index < b.index) {
+                function_a(a);
+                a_it++;
+            }
+            else {
+                function_b(b);
+                b_it++;
+            }
+        }
     }
 
     inline bool commutes_with(const QuantumString& other) const {
-        const auto overlap = this->overlap(other);
-
-        if(overlap.empty())
-            return true;
-
         if(QuantumOperator::is_pauli_operator()) {
             auto num_different_operators = 0u;
-            for(const auto i : overlap) {
-                if((*this)[i] != other[i]) {
+            for(const auto a_and_b : this->overlap(other)) {
+                if(a_and_b.first.op != a_and_b.second.op) {
                     num_different_operators++;
                 }
             }
@@ -182,23 +277,26 @@ public:
         return false;
     }
 
-    inline pair<Spins, complex<double>> apply(Spins spins) const {
+    inline pair<Configuration, complex<double>> apply(Configuration conf) const {
         complex<double> factor = 1.0;
 
-        for(const auto& index_and_op : this->operators) {
-            const auto spins_and_factor = index_and_op.second.apply(spins, index_and_op.first);
+        for(const auto& symbol : this->symbols) {
+            const auto conf_and_factor = symbol.op.apply(conf, symbol.index);
 
-            spins = spins_and_factor.first;
-            factor *= spins_and_factor.second;
+            conf = conf_and_factor.first;
+            factor *= conf_and_factor.second;
+
+            if(factor == 0.0) {
+                return {conf, 0.0};
+            }
         }
 
-        return {spins, factor};
+        return {conf, factor};
     }
 
     inline bool is_diagonal() const {
-        for(const auto& index_and_op : this->operators) {
-            const auto& op = index_and_op.second;
-            if(op.type == 1 || op.type == 2) {
+        for(const auto& symbol : this->symbols) {
+            if(symbol.op == 1 || symbol.op == 2) {
                 return false;
             }
         }
@@ -207,85 +305,60 @@ public:
     }
 
     inline QuantumOperator& operator[](const int index) {
-        return this->operators.find(index)->second;
+        for(const auto& symbol : this->symbols) {
+            if(index == symbol.index) {
+                return symbol.op;
+            }
+        }
+        cerr << "[QuantumString] could not find index " << index << endl;
+        return this->symbols[0].op;
     }
 
     inline const QuantumOperator& operator[](const int index) const {
-        return this->operators.find(index)->second;
+        for(const auto& symbol : this->symbols) {
+            if(index == symbol.index) {
+                return symbol.op;
+            }
+        }
+        cerr << "[QuantumString] could not find index " << index << endl;
+        return this->symbols.front().op;
     }
 
     int min_index() const {
-        return *min_element(this->indices.begin(), this->indices.end());
+        return this->symbols.front().index;
     }
 
     int max_index() const {
-        return *max_element(this->indices.begin(), this->indices.end());
+        return this->symbols.back().index;
     }
 
-    inline operator_iterator begin() const {
-        return this->operators.begin();
+    decltype(auto) begin() {
+        return this->symbols.begin();
     }
 
-    inline operator_iterator end() const {
-        return this->operators.end();
+    decltype(auto) begin() const {
+        return this->symbols.begin();
     }
 
+    decltype(auto) end() {
+        return this->symbols.end();
+    }
+
+    decltype(auto) end() const {
+        return this->symbols.end();
+    }
+
+    inline symbol_iterator begin_symbols() const {
+        return symbol_iterator(this->symbols.begin());
+    }
+
+    inline symbol_iterator end_symbols() const {
+        return symbol_iterator(this->symbols.end());
+    }
 };
 
-
-template<typename QuantumString_t>
-inline decltype(auto) operator*(const QuantumString_t& a, const QuantumString_t& b) {
-    using Term = pair<QuantumString_t, complex<double>>;
-    using Terms = forward_list<Term>;
-    Terms result = {{QuantumString_t(), 1.0}};
-
-    for(const auto i : a.overlap(b)) {
-        const auto op_and_prefactor_and_constant = a[i] * b[i];
-        const auto& op = get<0>(op_and_prefactor_and_constant);
-        const auto& prefactor = get<1>(op_and_prefactor_and_constant);
-        const auto& constant = get<2>(op_and_prefactor_and_constant);
-
-        if(prefactor == 0.0) {
-            return Terms();
-        }
-
-        Terms terms_of_constant;
-        if(constant != 0.0) {
-            for(const auto& term : result) {
-                terms_of_constant.push_front({term.first, constant * term.second});
-            }
-        }
-        for(auto& term : result) {
-            if(!op.is_identity()) {
-                term.first.indices.insert(i);
-                term.first.operators.insert({i, op});
-            }
-            term.second *= prefactor;
-        }
-        for(const auto& term : terms_of_constant) {
-            result.push_front(term);
-        }
-    }
-
-    // TODO: iterate a and b separately
-    for(const auto i : a.difference(b)) {
-        for(auto& term : result) {
-            // TODO: try `emplace`
-            term.first.indices.insert(i);
-
-            const auto in_a = a.operators.find(i);
-            if(in_a != a.operators.end()) {
-                term.first.operators.insert(*in_a);
-            }
-            else {
-                term.first.operators.insert({i, b[i]});
-            }
-        }
-    }
-
-    return result;
-}
-
+using PauliString = QuantumString<PauliOperator>;
+using FermionString = QuantumString<FermionOperator>;
 
 template<typename QuantumOperator>
 ostream& operator<<(ostream& os, const QuantumString<QuantumOperator>& quantum_string) {
@@ -293,21 +366,20 @@ ostream& operator<<(ostream& os, const QuantumString<QuantumOperator>& quantum_s
     return os;
 }
 
-using PauliString = QuantumString<PauliOperator>;
-using FermionString = QuantumString<FermionOperator>;
 
 } // namespace quantum_expression
+
+#include "QuantumString_multiplication.hpp"
 
 
 namespace std {
 
-using namespace quantum_expression;
-
 template<typename QuantumOperator>
-struct hash<QuantumString<QuantumOperator>> {
-    inline size_t operator()(const QuantumString<QuantumOperator>& quantum_string) const {
+struct hash<quantum_expression::QuantumString<QuantumOperator>> {
+    inline size_t operator()(const quantum_expression::QuantumString<QuantumOperator>& quantum_string) const {
         size_t result = 0;
-        for(const auto index : quantum_string.indices) {
+        for(const auto& symbol : quantum_string.symbols) {
+            const auto index = symbol.index;
             result += index + index * index;
         }
         return result;

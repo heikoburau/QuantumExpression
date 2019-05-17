@@ -18,7 +18,7 @@ using namespace quantum_expression;
 
 // Python Module and Docstrings
 
-PYBIND11_MODULE(QuantumExpression, m)
+PYBIND11_MODULE(_QuantumExpression, m)
 {
     xt::import_numpy();
 
@@ -32,7 +32,7 @@ PYBIND11_MODULE(QuantumExpression, m)
         .def(
             "__iter__",
             [](const PauliString& x){
-                return py::make_iterator(x.begin(), x.end());
+                return py::make_iterator(x.begin_symbols(), x.end_symbols());
             },
             py::keep_alive<0, 1>()
         )
@@ -71,9 +71,9 @@ PYBIND11_MODULE(QuantumExpression, m)
             },
             py::keep_alive<0, 1>()
         )
+        .def_property_readonly("dagger", &PauliExpression::dagger)
         .def("exp", &PauliExpression::exp)
-        .def("rotate_by", py::overload_cast<const PauliExpression&, const double>(&PauliExpression::rotate_by))
-        .def("fast_rotate_by", &PauliExpression::fast_rotate_by)
+        .def("rotate_by", &PauliExpression::rotate_by)
         .def("apply_threshold", &PauliExpression::apply_threshold)
         .def_property_readonly("max_term", &PauliExpression::max_term)
         .def_property_readonly("max_norm", &PauliExpression::max_norm)
@@ -82,8 +82,10 @@ PYBIND11_MODULE(QuantumExpression, m)
         .def_property_readonly("is_numeric", &PauliExpression::is_numeric)
         .def_property("coefficient", &PauliExpression::get_coefficient, &PauliExpression::set_coefficient)
         .def_property_readonly("pauli_string", &PauliExpression::get_quantum_string)
+        .def_property_readonly("quantum_string", &PauliExpression::get_quantum_string)
         .def("matrix", &PauliExpression::matrix)
         .def("commutes_with", &PauliExpression::commutes_with)
+        .def("diagonal_terms", &PauliExpression::diagonal_terms)
         .def("extract_noncommuting_with", &PauliExpression::extract_noncommuting_with)
         .def("expectation_value_of_plus_x_state", &PauliExpression::expectation_value_of_plus_x_state)
         .def("trace", &PauliExpression::trace);
@@ -99,7 +101,7 @@ PYBIND11_MODULE(QuantumExpression, m)
         .def(
             "__iter__",
             [](const FermionString& x){
-                return py::make_iterator(x.begin(), x.end());
+                return py::make_iterator(x.begin_symbols(), x.end_symbols());
             },
             py::keep_alive<0, 1>()
         )
@@ -146,14 +148,26 @@ PYBIND11_MODULE(QuantumExpression, m)
         .def_property_readonly("imag", &FermionExpression::imag)
         .def_property_readonly("is_numeric", &FermionExpression::is_numeric)
         .def_property("coefficient", &FermionExpression::get_coefficient, &FermionExpression::set_coefficient)
+        .def_property_readonly("diagonal_terms", &FermionExpression::diagonal_terms)
         .def_property_readonly("fermion_string", &FermionExpression::get_quantum_string)
+        .def_property_readonly("quantum_string", &FermionExpression::get_quantum_string)
+        .def("matrix", &FermionExpression::matrix)
         .def("commutes_with", &FermionExpression::commutes_with)
         .def("extract_noncommuting_with", &FermionExpression::extract_noncommuting_with);
 
-    m.def("commutator", commutator<PauliExpression>);
-    m.def("commutator", commutator<FermionExpression>);
+    m.def("commutator", py::overload_cast<const PauliExpression&, const PauliExpression&>(commutator));
+    m.def("commutator", py::overload_cast<const FermionExpression&, const FermionExpression&>(commutator));
+    m.def("anti_commutator", anti_commutator);
 
-    m.def("frobenius_norm", frobenius_norm);
-    m.def("trace", trace);
+    m.def("frobenius_norm", frobenius_norm<PauliExpression>);
+    m.def("frobenius_norm", frobenius_norm<FermionExpression>);
+    m.def("trace", py::overload_cast<const PauliExpression&, const unsigned int>(trace));
+    m.def("trace", py::overload_cast<const FermionExpression&, const unsigned int>(trace));
     m.def("mul_trace", mul_trace);
+    m.def("partial_trace", py::overload_cast<const FermionExpression&, const unsigned int, const unsigned int>(partial_trace));
+    m.def("partial_trace", py::overload_cast<const xt::pytensor<complex<double>, 1>&, const unsigned int, const unsigned int>(partial_trace));
+    m.def("exp_and_apply", exp_and_apply);
+    m.def("change_basis", change_basis);
+    m.def("substitute", substitute);
+    m.def("mul", mul<FermionString, complex<double>>);
 }

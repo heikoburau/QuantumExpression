@@ -11,3 +11,4 @@ build
 tmp
 dist
 *.egg-info
+auto_rsync_pks.sh
