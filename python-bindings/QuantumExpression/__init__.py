@@ -1,2 +1,2 @@
 from ._QuantumExpression import *
-from . import add_json
+from . import add_methods
