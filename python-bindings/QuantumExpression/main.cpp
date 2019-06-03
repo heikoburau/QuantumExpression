@@ -13,6 +13,7 @@
 
 
 namespace py = pybind11;
+using namespace pybind11::literals;
 
 using namespace quantum_expression;
 
@@ -63,6 +64,7 @@ PYBIND11_MODULE(_QuantumExpression, m)
         .def(complex<double>() * py::self)
         .def(+py::self)
         .def(-py::self)
+        .def("__matmul__", &PauliExpression::apply_on_state)
         .def(
             "__iter__",
             [](const PauliExpression& x){
@@ -72,7 +74,7 @@ PYBIND11_MODULE(_QuantumExpression, m)
         )
         .def_property_readonly("dagger", &PauliExpression::dagger)
         .def("exp", &PauliExpression::exp)
-        .def("rotate_by", &PauliExpression::rotate_by)
+        .def("rotate_by", &PauliExpression::rotate_by, "generator"_a, "threshold"_a = 0.0)
         .def("apply_threshold", &PauliExpression::apply_threshold)
         .def_property_readonly("max_term", &PauliExpression::max_term)
         .def_property_readonly("max_norm", &PauliExpression::max_norm)
@@ -167,5 +169,6 @@ PYBIND11_MODULE(_QuantumExpression, m)
     m.def("exp_and_apply", exp_and_apply);
     m.def("change_basis", change_basis);
     m.def("substitute", substitute);
+    m.def("mul", mul<PauliString, complex<double>>);
     m.def("mul", mul<FermionString, complex<double>>);
 }

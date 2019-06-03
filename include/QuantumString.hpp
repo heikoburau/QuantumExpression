@@ -294,6 +294,37 @@ public:
         return {conf, factor};
     }
 
+    inline void apply(complex<double>* out_state, complex<double>* in_state, const unsigned int dim_N) const {
+        for(const auto& symbol : this->symbols) {
+            const auto index_bit = (1u << symbol.index);
+
+            if(symbol.op.type == 1) {
+                for(auto conf = 0u; conf < dim_N; conf++) {
+                    out_state[conf ^ index_bit] = in_state[conf];
+                }
+            }
+            else if (symbol.op.type == 2) {
+                for(auto conf = 0u; conf < dim_N; conf++) {
+                    out_state[conf ^ index_bit] = 1i * (2.0 * double(bool(conf & index_bit)) - 1.0) * in_state[conf];
+                }
+            }
+            else if (symbol.op.type == 3) {
+                for(auto conf = 0u; conf < dim_N; conf++) {
+                    out_state[conf] = (2.0 * double(bool(conf & index_bit)) - 1.0) * in_state[conf];
+                }
+            }
+
+            complex<double>* tmp = in_state;
+            in_state = out_state;
+            out_state = tmp;
+        }
+        if(this->size() % 2u == 0u) {
+            for(auto conf = 0u; conf < dim_N; conf++) {
+                out_state[conf] = in_state[conf];
+            }
+        }
+    }
+
     inline bool is_diagonal() const {
         for(const auto& symbol : this->symbols) {
             if(symbol.op == 1 || symbol.op == 2) {

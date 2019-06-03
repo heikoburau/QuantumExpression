@@ -7,6 +7,7 @@
 
 #define FORCE_IMPORT_ARRAY
 #include "xtensor-python/pytensor.hpp"
+#include "xtensor/xbuilder.hpp"
 
 #endif
 
@@ -379,6 +380,25 @@ public:
                     result(static_cast<unsigned int>(conf_and_value.first), configuration) += conf_and_value.second;
                 }
             }
+        }
+
+        return result;
+    }
+
+    decltype(auto) apply_on_state(const xt::pytensor<Coefficient, 1u>& state) const {
+        const auto dim_N = state.size();
+        const auto shape = array<long int, 1u>{(long int)dim_N};
+
+        xt::pytensor<Coefficient, 1u> result(shape);
+        result = xt::zeros<Coefficient>(shape);
+        xt::pytensor<Coefficient, 1u> in(shape);
+        xt::pytensor<Coefficient, 1u> out(shape);
+
+        for(const auto& term : *this) {
+            in = state;
+
+            term.first.apply(out.raw_data(), in.raw_data(), dim_N);
+            result += term.second * out;
         }
 
         return result;
