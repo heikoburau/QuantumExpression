@@ -119,6 +119,16 @@ public:
         return result;
     }
 
+    inline vector<int> get_types() const {
+        vector<int> result;
+        result.reserve(this->symbols.size());
+        for(const auto& symbol : *this) {
+            result.push_back(symbol.op.type);
+        }
+
+        return result;
+    }
+
     inline pair<QuantumString, double> dagger() const {
         QuantumString result(*this);
 

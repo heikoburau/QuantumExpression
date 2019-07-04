@@ -37,10 +37,13 @@ PYBIND11_MODULE(_QuantumExpression, m)
             },
             py::keep_alive<0, 1>()
         )
+        .def_property_readonly("indices", &PauliString::get_indices)
+        .def_property_readonly("types", &PauliString::get_types)
         .def_property_readonly("max_index", &PauliString::max_index)
         .def_property_readonly("min_index", &PauliString::min_index);
 
     py::class_<PauliExpression>(m, "PauliExpression")
+        .def(py::init<const int, const int>())
         .def(py::init<const map<int, int>&>())
         .def(py::init<const PauliExpression&>())
         .def(py::self == py::self)
@@ -106,10 +109,13 @@ PYBIND11_MODULE(_QuantumExpression, m)
             },
             py::keep_alive<0, 1>()
         )
+        .def_property_readonly("indices", &FermionString::get_indices)
+        .def_property_readonly("types", &FermionString::get_types)
         .def_property_readonly("max_index", &FermionString::max_index)
         .def_property_readonly("min_index", &FermionString::min_index);
 
     py::class_<FermionExpression>(m, "FermionExpression")
+        .def(py::init<const int, const int>())
         .def(py::init<const map<int, int>&>())
         .def(py::init<const FermionExpression&>())
         .def(py::self == py::self)

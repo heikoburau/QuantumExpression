@@ -63,6 +63,10 @@ public:
     QuantumExpression(const Coefficient& coefficient) {
         this->insert({QuantumString(), coefficient});
     }
+    inline explicit QuantumExpression(const int index, const int type) {
+        map<int, int> quantum_string = {{index, type}};
+        this->insert({quantum_string, 1.0});
+    }
     inline explicit QuantumExpression(const QuantumString& quantum_string, const Coefficient& coefficient) {
         if(coefficient != 0.0) {
             this->insert({quantum_string, coefficient});
