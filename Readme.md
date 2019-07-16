@@ -16,20 +16,20 @@ Example
 =======
 
 ```python
-from QuantumExpression import FermionExpression as fe
+from QuantumExpression import cr_fermion, an_fermion, num_fermion
 from QuantumExpression import commutator, frobenius_norm
 
 L = 10
 
-# coding: 1 -> creation, 2 -> annihilation, 3 -> number
 H_0 = -1 / 2 * sum(
-    (fe({i: 1, i + 1: 2}) + fe({i: 2, i + 1: 1})) for i in range(L - 1)
+    cr_fermion(i) * an_fermion(i + 1) + (cr_fermion(i) * an_fermion(i + 1)).dagger
+    for i in range(L - 1)
 ) + sum(
-    fe({i: 3}) for i in range(L)
+    num_fermion(i) for i in range(L)
 )
 
 V = 0.1 * sum(
-    fe({i: 3}) * fe({i + 1: 3})
+    num_fermion(i) * num_fermion(i + 1)
     for i in range(L - 1)
 )
 

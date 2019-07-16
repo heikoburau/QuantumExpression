@@ -159,7 +159,8 @@ PYBIND11_MODULE(_QuantumExpression, m)
         .def_property_readonly("quantum_string", &FermionExpression::get_quantum_string)
         .def("matrix", &FermionExpression::matrix)
         .def("commutes_with", &FermionExpression::commutes_with)
-        .def("extract_noncommuting_with", &FermionExpression::extract_noncommuting_with);
+        .def("extract_noncommuting_with", &FermionExpression::extract_noncommuting_with)
+        .def("expectation_value_of_vacuum", &FermionExpression::expectation_value_of_vacuum);
 
     m.def("commutator", py::overload_cast<const PauliExpression&, const PauliExpression&>(commutator));
     m.def("commutator", py::overload_cast<const FermionExpression&, const FermionExpression&>(commutator));

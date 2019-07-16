@@ -488,6 +488,10 @@ public:
         return result;
     }
 
+    inline Coefficient expectation_value_of_vacuum() const {
+        return (*this)[QuantumString()];
+    }
+
     inline Coefficient get_coefficient() const {
         assert(this->size() <= 2u);
 

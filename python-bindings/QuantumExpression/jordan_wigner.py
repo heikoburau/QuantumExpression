@@ -6,16 +6,16 @@ from .factories import (
 )
 
 
-def jordan_wigner(expr):
+def jordan_wigner(expr, N):
     if isinstance(expr, PauliExpression):
-        return jordan_wigner_to_fermions(expr)
+        return jordan_wigner_to_fermions(expr, N)
     if isinstance(expr, FermionExpression):
-        return jordan_wigner_to_spins(expr)
+        return jordan_wigner_to_spins(expr, N)
 
     raise TypeError("argument has to be a `QuantumExpression`")
 
 
-def jordan_wigner_to_fermions(pauli_expr):
+def jordan_wigner_to_fermions(pauli_expr, N):
     result = 0
     for pauli_term in pauli_expr:
         indices = pauli_term.pauli_string.indices
@@ -27,8 +27,14 @@ def jordan_wigner_to_fermions(pauli_expr):
             )
             continue
 
-        if types == [1, 1] and indices[1] == indices[0] + 1:
+        if types == [1, 1] and (
+            indices[1] == indices[0] + 1 or
+            indices == [0, N - 1]
+        ):
             i, j = indices
+            if indices == [0, N - 1]:
+                i, j = j, i
+
             result += pauli_term.coefficient * (
                 cr_fermion(i) * cr_fermion(j) +
                 cr_fermion(i) * an_fermion(j) -
@@ -46,7 +52,7 @@ def jordan_wigner_to_fermions(pauli_expr):
     return result
 
 
-def jordan_wigner_to_spins(fermion_expr):
+def jordan_wigner_to_spins(fermion_expr, N):
     result = 0
 
     for fermion_term in fermion_expr:
@@ -62,11 +68,14 @@ def jordan_wigner_to_spins(fermion_expr):
         if len(types) == 2 and not any(t == 3 for t in types):
             i, j = indices
             z_string = 1
-            for k in range(i + 1, j):
-                z_string *= -sigma_z(k)
-
-            left_sigma = sigma_plus(i) if types[0] == 1 else -sigma_minus(i)
-            right_sigma = sigma_plus(j) if types[1] == 1 else sigma_minus(j)
+            if indices == [0, N - 1]:
+                left_sigma = -sigma_plus(j) if types[1] == 1 else sigma_minus(j)
+                right_sigma = sigma_plus(i) if types[0] == 1 else sigma_minus(i)
+            else:
+                for k in range(i + 1, j):
+                    z_string *= -sigma_z(k)
+                left_sigma = sigma_plus(i) if types[0] == 1 else -sigma_minus(i)
+                right_sigma = sigma_plus(j) if types[1] == 1 else sigma_minus(j)
 
             result += fermion_term.coefficient * left_sigma * z_string * right_sigma
             continue
