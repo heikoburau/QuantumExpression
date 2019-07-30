@@ -488,7 +488,7 @@ public:
         return result;
     }
 
-    inline Coefficient expectation_value_of_vacuum() const {
+    inline Coefficient vacuum_expectation_value() const {
         return (*this)[QuantumString()];
     }
 

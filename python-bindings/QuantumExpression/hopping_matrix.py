@@ -4,41 +4,79 @@ from .factories import (
 )
 
 
-def hopping_matrix(fermion_expr, N, with_pairings=False):
-    """
-    H = (c_1_dagger, ... , c_N_dagger, c_N, ..., c_1) * ( )_nm * (c_1, ... , c_N, c_N_dagger, ..., c_1_dagger)^T
-    """
+# def hopping_matrix(fermion_expr, N, with_pairings=False):
+#     """
+#     H = (c_1_dagger, ... , c_N_dagger, c_N, ..., c_1) * ( )_nm * (c_1, ... , c_N, c_N_dagger, ..., c_1_dagger)^T
+#     """
 
-    A = np.zeros((N, N), dtype=complex)
-    if with_pairings:
-        B = np.zeros((N, N), dtype=complex)
-        C = np.zeros((N, N), dtype=complex)
+#     A = np.zeros((N, N), dtype=complex)
+#     if with_pairings:
+#         B = np.zeros((N, N), dtype=complex)
+#         C = np.zeros((N, N), dtype=complex)
 
+#     for term in fermion_expr:
+#         indices = term.fermion_string.indices
+#         types = term.fermion_string.types
+
+#         if types == [3]:
+#             i = indices[0]
+#             A[i, i] = term.coefficient
+#             continue
+
+#         if len(types) == 2 and not any(t == 3 for t in types):
+#             i, j = indices
+#             coefficient = term.coefficient
+
+#             if types[0] != types[1]:
+#                 if types[0] == 2 and types[1] == 1:
+#                     i, j = j, i
+#                     coefficient = -coefficient
+
+#                 A[i, j] = coefficient
+#             elif types[0] == 1 and types[1] == 1:
+#                 B[i, j] += coefficient
+#                 B[j, i] += -coefficient
+#             elif types[0] == 2 and types[1] == 2:
+#                 C[i, j] += coefficient
+#                 C[j, i] += -coefficient
+#             continue
+
+#         if term.is_numeric:
+#             continue
+
+#         raise ValueError(f"this term is not supported: {term}")
+
+#     if with_pairings:
+#         return 1 / 2 * np.block([
+#             [A, B[:, ::-1]],
+#             [C.conj()[::-1, :], -A.conj()[::-1, ::-1]]
+#         ])
+#     else:
+#         return A
+
+
+def hopping_matrix(fermion_expr, N):
+    bar = lambda i: 2 * N - 1 - i
+
+    result = np.zeros((2 * N, 2 * N), dtype=complex)
     for term in fermion_expr:
         indices = term.fermion_string.indices
         types = term.fermion_string.types
 
         if types == [3]:
             i = indices[0]
-            A[i, i] = term.coefficient
+            result[i, i] += term.coefficient / 2
+            result[bar(i), bar(i)] += -term.coefficient / 2
             continue
 
         if len(types) == 2 and not any(t == 3 for t in types):
             i, j = indices
-            coefficient = term.coefficient
 
-            if types[0] != types[1]:
-                if types[0] == 2 and types[1] == 1:
-                    i, j = j, i
-                    coefficient = -coefficient
+            i = bar(i) if types[0] == 2 else i
+            j = bar(j) if types[1] == 1 else j
 
-                A[i, j] = coefficient
-            elif types[0] == 1 and types[1] == 1:
-                B[i, j] += coefficient
-                B[j, i] += -coefficient
-            elif types[0] == 2 and types[1] == 2:
-                C[i, j] += coefficient
-                C[j, i] += -coefficient
+            result[i, j] += term.coefficient / 2
+            result[bar(j), bar(i)] += -term.coefficient / 2
             continue
 
         if term.is_numeric:
@@ -46,16 +84,7 @@ def hopping_matrix(fermion_expr, N, with_pairings=False):
 
         raise ValueError(f"this term is not supported: {term}")
 
-    assert np.allclose(A, A.T.conj())
-
-    if with_pairings:
-        assert np.allclose(B, -B.T)
-        return 1 / 2 * np.block([
-            [A, B[:, ::-1]],
-            [C.conj()[::-1, :], -A.conj()[::-1, ::-1]]
-        ])
-    else:
-        return A
+    return result
 
 
 def expr_from_hopping_matrix(hopping_matrix, with_pairings=False):

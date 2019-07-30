@@ -20,6 +20,17 @@ static const int fermion_table[] = {
 };
 
 
+const unsigned int bit_count(const uint64_t x, const unsigned int max_index_plus_one) {
+    auto result = 0u;
+    for(auto i = 0u; i < max_index_plus_one; i++) {
+        if(x & (1 << i)) {
+            result++;
+        }
+    }
+    return result;
+}
+
+
 struct FermionOperator {
     using Configuration = uint64_t;
 
@@ -64,13 +75,17 @@ struct FermionOperator {
             if(configuration & mask) {
                 return {configuration, 0.0};
             }
-            return {configuration | mask, 1.0};
+            const auto num_previous_fermions = bit_count(configuration, index);
+            const auto prefactor = num_previous_fermions % 2u == 0u ? 1.0 : -1.0;
+            return {configuration | mask, prefactor};
         }
         if(this->type == 2) {
             if(!(configuration & mask)) {
                 return {configuration, 0.0};
             }
-            return {configuration & ~mask, 1.0};
+            const auto num_previous_fermions = bit_count(configuration, index);
+            const auto prefactor = num_previous_fermions % 2u == 0u ? 1.0 : -1.0;
+            return {configuration & ~mask, prefactor};
         }
         if(this->type == 3) {
             return {configuration, configuration & mask ? 1.0 : 0.0};

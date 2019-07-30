@@ -290,7 +290,8 @@ public:
     inline pair<Configuration, complex<double>> apply(Configuration conf) const {
         complex<double> factor = 1.0;
 
-        for(const auto& symbol : this->symbols) {
+        for(auto symbol_it = this->rbegin(); symbol_it != this->rend(); symbol_it++) {
+            const auto symbol = *symbol_it;
             const auto conf_and_factor = symbol.op.apply(conf, symbol.index);
 
             conf = conf_and_factor.first;
@@ -305,7 +306,8 @@ public:
     }
 
     inline void apply(complex<double>* out_state, complex<double>* in_state, const unsigned int dim_N) const {
-        for(const auto& symbol : this->symbols) {
+        for(auto symbol_it = this->rbegin(); symbol_it != this->rend(); symbol_it++) {
+            const auto symbol = *symbol_it;
             const auto index_bit = (1u << symbol.index);
 
             if(symbol.op.type == 1) {
@@ -387,6 +389,22 @@ public:
 
     decltype(auto) end() const {
         return this->symbols.end();
+    }
+
+    decltype(auto) rbegin() {
+        return this->symbols.rbegin();
+    }
+
+    decltype(auto) rbegin() const {
+        return this->symbols.rbegin();
+    }
+
+    decltype(auto) rend() {
+        return this->symbols.rend();
+    }
+
+    decltype(auto) rend() const {
+        return this->symbols.rend();
     }
 
     inline symbol_iterator begin_symbols() const {
