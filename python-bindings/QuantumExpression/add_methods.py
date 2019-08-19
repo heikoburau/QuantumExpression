@@ -1,6 +1,7 @@
 from ._QuantumExpression import PauliExpression
 from ._QuantumExpression import FermionExpression
 from scipy import sparse
+import numpy as np
 
 
 def __repr__(self):
@@ -60,20 +61,39 @@ sparse_fermion_matrices = {
     for op in range(4)
 }
 
+sigma_z_matrix = sparse.csr_matrix(np.array([
+    [1, 0],
+    [0, -1]
+]))
+sigma_z_products = {}
+
+def sigma_z_product(n):
+    if n not in sigma_z_products:
+        result = sigma_z_matrix
+        for i in range(1, n):
+            result = sparse.kron(result, sigma_z_matrix)
+        sigma_z_products[n] = result
+
+    return sigma_z_products[n]
+
 
 def sparse_matrix(self, N):
     result = 0
 
-    sparse_matrices = sparse_pauli_matrices if isinstance(self, PauliExpression) else sparse_fermion_matrices
+    is_fermionic = isinstance(self, FermionExpression)
+    sparse_matrices = sparse_fermion_matrices if is_fermionic else sparse_pauli_matrices
 
     for term in self:
         sparse_string = sparse.identity(2**N)
         for i, op in term.quantum_string:
-            left = sparse.identity(2**i) if i > 0 else 1
-            right = sparse.identity(2**(N - i - 1)) if i < N - 1 else 1
+            if is_fermionic and op in [1, 2]:
+                right = sigma_z_product(i) if i > 0 else 1
+            else:
+                right = sparse.identity(2**i) if i > 0 else 1
+            left = sparse.identity(2**(N - i - 1)) if i < N - 1 else 1
             sparse_op = sparse.kron(
-                sparse.kron(right, sparse_matrices[op]),
-                left
+                left,
+                sparse.kron(sparse_matrices[op], right)
             )
             sparse_string *= sparse_op
 
