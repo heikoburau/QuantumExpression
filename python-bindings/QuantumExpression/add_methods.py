@@ -15,6 +15,18 @@ setattr(PauliExpression, "__repr__", __repr__)
 setattr(FermionExpression, "__repr__", __repr__)
 
 
+def __pow__(self, x):
+    result = 1
+    for n in range(x):
+        result *= self
+
+    return result
+
+
+setattr(PauliExpression, "__pow__", __pow__)
+setattr(FermionExpression, "__pow__", __pow__)
+
+
 def to_json(self):
     return dict(
         type="PauliExpression" if isinstance(self, PauliExpression) else "FermionExpression",
@@ -66,6 +78,7 @@ sigma_z_matrix = sparse.csr_matrix(np.array([
     [0, -1]
 ]))
 sigma_z_products = {}
+
 
 def sigma_z_product(n):
     if n not in sigma_z_products:

@@ -20,7 +20,7 @@ static const int fermion_table[] = {
 };
 
 
-const unsigned int bit_count(const uint64_t x, const unsigned int max_index_plus_one) {
+inline const unsigned int bit_count(const uint64_t x, const unsigned int max_index_plus_one) {
     auto result = 0u;
     for(auto i = 0u; i < max_index_plus_one; i++) {
         if(x & (1 << i)) {

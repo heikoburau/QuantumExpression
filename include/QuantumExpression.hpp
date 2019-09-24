@@ -247,6 +247,14 @@ public:
         return *this;
     }
 
+    inline This operator/=(const Coefficient& number) {
+        for(auto& term : *this) {
+            term.second /= number;
+        }
+
+        return *this;
+    }
+
     inline This operator-() const {
         This result = *this;
 
@@ -298,6 +306,9 @@ public:
     }
 
     inline This rotate_by(const This& generator, const double threshold=0.0) const {
+        // CAUTION: The `threshold` parameter belongs to the cutoff of the exponentiated `generator` and
+        // not to the final result.
+
         if(this->is_numeric()) {
             return This(this->get_coefficient());
         }
@@ -401,7 +412,7 @@ public:
         for(const auto& term : *this) {
             in = state;
 
-            term.first.apply(out.raw_data(), in.raw_data(), dim_N);
+            term.first.apply(out.data(), in.data(), dim_N);
             result += term.second * out;
         }
 
@@ -679,6 +690,20 @@ inline QuantumExpression<QuantumString, Coefficient> mul(
 }
 
 template<typename QuantumString, typename Coefficient>
+inline QuantumExpression<QuantumString, Coefficient> pow(
+    const QuantumExpression<QuantumString, Coefficient>& base,
+    const unsigned int exponent
+) {
+        QuantumExpression<QuantumString, Coefficient> result(1.0);
+
+        for(auto i = 0u; i < exponent; i++) {
+            result = mul(base, result);
+        }
+
+        return result;
+    }
+
+template<typename QuantumString, typename Coefficient>
 inline QuantumExpression<QuantumString, Coefficient> operator*(
     const QuantumExpression<QuantumString, Coefficient>& a,
     const QuantumExpression<QuantumString, Coefficient>& b
@@ -702,6 +727,16 @@ inline QuantumExpression<QuantumString, Coefficient> operator*(
     const QuantumExpression<QuantumString, Coefficient>& x
 ) {
     return x * number;
+}
+
+template<typename QuantumString, typename Coefficient>
+inline QuantumExpression<QuantumString, Coefficient> operator/(
+    const QuantumExpression<QuantumString, Coefficient>& x,
+    const typename QuantumExpression<QuantumString, Coefficient>::Coefficient& number
+) {
+    QuantumExpression<QuantumString, Coefficient> result = x;
+    result /= number;
+    return result;
 }
 
 

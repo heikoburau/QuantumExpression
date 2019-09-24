@@ -78,7 +78,7 @@ inline FermionExpression anti_commutator(
 
 
 inline complex<double> trace(const PauliExpression& expr, const unsigned int N) {
-    return pow(2, N) * expr[typename PauliExpression::QuantumString()];
+    return std::pow(2, N) * expr[typename PauliExpression::QuantumString()];
 }
 
 
@@ -86,7 +86,7 @@ inline complex<double> trace(const FermionExpression& expr, const unsigned int N
     complex<double> result = 0.0+0i;
 
     for(const auto& term : expr.diagonal_terms()) {
-        result += term.second * pow(2.0, N - term.first.size());
+        result += term.second * std::pow(2.0, N - term.first.size());
     }
 
     return result;
