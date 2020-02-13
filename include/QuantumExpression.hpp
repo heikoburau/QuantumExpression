@@ -8,6 +8,7 @@
 #define FORCE_IMPORT_ARRAY
 #include "xtensor-python/pytensor.hpp"
 #include "xtensor/xbuilder.hpp"
+#include "xtensor/xeval.hpp"
 
 #endif
 
@@ -305,8 +306,8 @@ public:
         return result;
     }
 
-    inline This rotate_by(const This& generator, const double threshold=0.0) const {
-        // CAUTION: The `threshold` parameter belongs to the cutoff of the exponentiated `generator` and
+    inline This rotate_by(const This& generator, const double exp_threshold=0.0, const double threshold=0.0) const {
+        // CAUTION: The `exp_threshold` parameter belongs to the cutoff of the exponentiated `generator` and
         // not to the final result.
 
         if(this->is_numeric()) {
@@ -324,7 +325,12 @@ public:
                 }
             }
 
-            result += relevant_generator.exp(threshold) * This(term);
+            auto rotated_term = relevant_generator.exp(exp_threshold) * This(term);
+            if(threshold > 0.0) {
+                rotated_term = rotated_term.apply_threshold(threshold);
+            }
+
+            result += rotated_term;
         }
 
         return result;
@@ -402,21 +408,21 @@ public:
 
     decltype(auto) apply_on_state(const xt::pytensor<Coefficient, 1u>& state) const {
         const auto dim_N = state.size();
-        const auto shape = array<long int, 1u>{(long int)dim_N};
+        const auto shape = array<size_t, 1u>{(size_t)dim_N};
 
-        xt::pytensor<Coefficient, 1u> result(shape);
+        xt::xtensor<Coefficient, 1u> result(shape);
         result = xt::zeros<Coefficient>(shape);
-        xt::pytensor<Coefficient, 1u> in(shape);
-        xt::pytensor<Coefficient, 1u> out(shape);
+        xt::xtensor<Coefficient, 1u> in(shape);
+        xt::xtensor<Coefficient, 1u> out(shape);
 
         for(const auto& term : *this) {
             in = state;
 
             term.first.apply(out.data(), in.data(), dim_N);
-            result += term.second * out;
+            result += xt::eval(term.second * out);
         }
 
-        return result;
+        return xt::pytensor<Coefficient, 1u>(result);
     }
 
 #endif

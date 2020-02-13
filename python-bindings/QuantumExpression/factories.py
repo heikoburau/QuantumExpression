@@ -61,7 +61,7 @@ def from_fermion_matrix(matrix, threshold=None):
                 op *= num_fermion(i)
             elif code == 3:
                 op *= 1 - num_fermion(i)
-                
+
         term = complex(np.trace(matrix @ op.matrix(N).T.conj())) * op
         if threshold is None or abs(term) > threshold:
             result += term
