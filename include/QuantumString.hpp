@@ -199,7 +199,7 @@ public:
         stringstream result;
 
         if(!(*this)) {
-            result << "QuantumString \"\"\n";
+            result << "QuantumString \"\"";
             return result.str();
         }
 
