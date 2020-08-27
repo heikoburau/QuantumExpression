@@ -166,6 +166,19 @@ public:
         return this->symbols != other.symbols;
     }
 
+    inline unsigned int hash() const {
+        auto result = 0u;
+
+        auto base = 1u;
+        for(const auto& symbol : *this) {
+            result += base * symbol.index * symbol.op.type;
+
+            base *= 3 * 20;
+        }
+
+        return result;
+    }
+
     inline operator bool() const {
         return !this->symbols.empty();
     }

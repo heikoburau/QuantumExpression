@@ -283,6 +283,32 @@ public:
         return result;
     }
 
+    inline This crop(const double threshold) const {
+        return this->apply_threshold(threshold);
+    }
+
+    inline This crop_rotation(const double threshold) const {
+        const auto cropped = this->crop(threshold);
+        const auto norm = cropped.l2_norm();
+        if(norm == 0.0) {
+            return QuantumExpression(1.0);
+        }
+
+        return cropped / norm;
+    }
+
+
+    inline This crop_rotation_generator(const double threshold) const {
+        const auto beta = this->abs2();
+        const auto cropped = this->crop(threshold);
+        const auto beta_c = cropped.abs2();
+        if(beta_c == 0.0) {
+            return QuantumExpression(0.0);
+        }
+
+        return cropped * sqrt(beta / beta_c);
+    }
+
     inline This exp(const double threshold=0.0) const {
         // WARNING: only imaginary terms are considered
 
@@ -299,7 +325,7 @@ public:
             result = result * x;
 
             if(threshold > 0.0) {
-                result = result.apply_threshold(threshold);
+                result = result.crop_rotation(threshold);
             }
         }
 
@@ -362,6 +388,18 @@ public:
             return 0.0;
         }
         return abs(this->max_term().begin()->second);
+    }
+
+    inline double abs2() const {
+        auto result = 0.0;
+        for(const auto& term : *this) {
+            result += norm(term.second);
+        }
+        return result;
+    }
+
+    inline double l2_norm() const {
+        return sqrt(this->abs2());
     }
 
     inline double absolute() const {

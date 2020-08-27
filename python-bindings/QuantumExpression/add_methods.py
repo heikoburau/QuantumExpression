@@ -115,5 +115,25 @@ def sparse_matrix(self, N):
     return result
 
 
+def effective_matrix(self, basis):
+    basis = {s: i for i, s in enumerate(basis)}
+
+    data, row_ind, col_ind = [], [], []
+
+    for row, row_i in basis.items():
+        for A_i in self:
+            col_term = PauliExpression(row, 1.0) * A_i
+
+            try:
+                col_ind.append(basis[col_term.pauli_string])
+                row_ind.append(row_i)
+                data.append(col_term.coefficient)
+            except KeyError:
+                pass
+
+    return sparse.csr_matrix((data, (row_ind, col_ind)), shape=(len(basis), len(basis)))
+
+
 setattr(PauliExpression, "sparse_matrix", sparse_matrix)
 setattr(FermionExpression, "sparse_matrix", sparse_matrix)
+setattr(PauliExpression, "effective_matrix", effective_matrix)
