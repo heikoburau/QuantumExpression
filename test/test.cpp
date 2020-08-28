@@ -173,7 +173,7 @@ TEST_CASE("Test PauliExpression") {
     REQUIRE(d * e == PauliExpression({{0, 3}, {1, 3}, {2, 1}}, 0.25i));
 
     REQUIRE(e * e == PauliExpression(0.25));
-    REQUIRE(d * d * e == 0.25 * e);
+    REQUIRE(d * (d * e) == 0.25 * e);
 }
 
 TEST_CASE("Test rotate by") {

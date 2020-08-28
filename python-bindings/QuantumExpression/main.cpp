@@ -50,6 +50,13 @@ PYBIND11_MODULE(_QuantumExpression, m)
         .def("__len__", &FastPauliString::size)
         .def("__str__", &FastPauliString::str)
         .def("__repr__", &FastPauliString::str)
+        .def(
+            "__iter__",
+            [](const FastPauliString& x){
+                return py::make_iterator(x.begin_symbols(), x.end_symbols());
+            },
+            py::keep_alive<0, 1>()
+        )
         .def("__hash__", [](const FastPauliString& pauli_string) {
             return std::hash<FastPauliString>()(pauli_string);
         });

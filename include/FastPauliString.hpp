@@ -33,6 +33,45 @@ struct FastPauliString {
     using Configuration = typename PauliOperator::Configuration;
     using QuantumOperator = PauliOperator;
 
+    struct symbol_iterator : public iterator<forward_iterator_tag, pair<int, int>>
+    {
+        dtype a, b;
+        unsigned int index;
+
+        inline symbol_iterator(const dtype& a, const dtype& b, const unsigned int index)
+        : a(a), b(b), index(index) {}
+
+        inline bool operator==(const symbol_iterator& other) const {
+            return this->index == other.index;
+        }
+
+        inline bool operator!=(const symbol_iterator& other) const {
+            return this->index != other.index;
+        }
+
+        inline symbol_iterator& operator++() {
+            auto type = 0u;
+            while(this->index < 64u && type == 0u) {
+                this->index++;
+                type = (
+                    int(bool(this->a & (1u << this->index))) |
+                    (int(bool(this->b & (1u << this->index))) << 1u)
+                );
+            }
+
+            return *this;
+        }
+
+        inline pair<int, int> operator*() const {
+            const auto type = (
+                int(bool(this->a & (1u << this->index))) |
+                (int(bool(this->b & (1u << this->index))) << 1u)
+            );
+
+            return {this->index, type};
+        }
+    };
+
     inline FastPauliString() : a(0), b(0) {};
     inline FastPauliString(const dtype& a, const dtype& b) : a(a), b(b) {};
 
@@ -230,6 +269,14 @@ struct FastPauliString {
         result << "\"";
 
         return result.str();
+    }
+
+    inline symbol_iterator begin_symbols() const {
+        return symbol_iterator(this->a, this->b, 0u);
+    }
+
+    inline symbol_iterator end_symbols() const {
+        return symbol_iterator(this->a, this->b, 64u);
     }
 };
 
