@@ -40,7 +40,7 @@ public:
     using Configuration = typename QuantumString::Configuration;
 
     typedef pair<QuantumString, Coefficient> Term;
-    typedef unordered_multimap<
+    typedef unordered_map<
         QuantumString,
         Coefficient
     > Terms;
@@ -95,7 +95,7 @@ public:
 
     inline This dagger() const {
         This result;
-        result.terms.reserve(this->size());
+        result.reserve(this->size());
 
         for(const auto& term : this->terms) {
             const auto string_and_prefactor = term.first.dagger();
@@ -157,7 +157,17 @@ public:
         return this->terms.empty();
     }
 
-    string str() const {
+    inline void reserve(unsigned int count) {
+        if(count > 10000u) {
+            this->terms.max_load_factor(2);
+        }
+        else {
+            this->terms.max_load_factor(1);
+        }
+        this->terms.reserve(count);
+    }
+
+    inline string str() const {
         stringstream result;
 
         if(this->empty()) {
@@ -284,7 +294,7 @@ public:
 
     inline This apply_threshold(const double threshold) const {
         This result;
-        result.terms.reserve(this->size());
+        result.reserve(this->size());
 
         for(const auto& term : *this) {
             if(abs(term.second) >= threshold) {
@@ -585,7 +595,7 @@ public:
 
     inline This real() const {
         This result;
-        result.terms.reserve(this->size());
+        result.reserve(this->size());
 
         for(const auto& term : *this) {
             const auto coefficient = term.second.real();
@@ -599,7 +609,7 @@ public:
 
     inline This imag() const {
         This result;
-        result.terms.reserve(this->size());
+        result.reserve(this->size());
 
         for(const auto& term : *this) {
             const auto coefficient = term.second.imag();
@@ -649,7 +659,7 @@ public:
 
 
 template<typename QuantumString, typename Coefficient>
-ostream& operator<<(ostream& os, const QuantumExpression<QuantumString, Coefficient>& x) {
+inline ostream& operator<<(ostream& os, const QuantumExpression<QuantumString, Coefficient>& x) {
     os << x.str();
     return os;
 }
@@ -714,7 +724,7 @@ inline QuantumExpression<QuantumString, Coefficient> mul(
     const double threshold = 0.0
 ) {
     QuantumExpression<QuantumString, Coefficient> result;
-    result.terms.reserve(a.size() * b.size());
+    result.reserve(a.size() * b.size());
 
     for(const auto& b_term : b) {
         QuantumExpression<QuantumString, Coefficient> a_times_b_term;
@@ -745,7 +755,7 @@ inline QuantumExpression<FastPauliString, Coefficient> mul(
     const double threshold = 0.0
 ) {
     QuantumExpression<FastPauliString, Coefficient> result;
-    result.terms.reserve(a.size() * b.size());
+    result.reserve(a.size() * b.size());
 
     for(const auto& b_term : b) {
         for(const auto& a_term : a) {

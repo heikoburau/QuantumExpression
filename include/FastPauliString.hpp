@@ -341,8 +341,17 @@ namespace std {
 template<>
 struct hash<quantum_expression::FastPauliString> {
     inline size_t operator()(const quantum_expression::FastPauliString& pauli_string) const {
-        const auto is_non_trivial = pauli_string.is_non_trivial();
-        return is_non_trivial + quantum_expression::bit_count(is_non_trivial);
+        auto scrambled_a = pauli_string.a ^ 2679497229238437802u;
+        scrambled_a ^= scrambled_a >> 32u;
+        scrambled_a ^= scrambled_a >> 16u;
+        scrambled_a ^= scrambled_a >> 8u;
+
+        auto scrambled_b = pauli_string.b ^ 13352235226160897230u;
+        scrambled_b ^= scrambled_b >> 32u;
+        scrambled_b ^= scrambled_b >> 16u;
+        scrambled_b ^= scrambled_b >> 8u;
+
+        return scrambled_a ^ scrambled_b;
     }
 };
 

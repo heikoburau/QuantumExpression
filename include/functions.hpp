@@ -42,7 +42,7 @@ inline QuantumExpression<FastPauliString> commutator(
     const QuantumExpression<FastPauliString>& b
 ) {
     QuantumExpression<FastPauliString> result;
-    result.terms.reserve(a.size() * b.size());
+    result.reserve(a.size() * b.size());
 
     for(const auto& a_term : a) {
         for(const auto& b_term : b) {
