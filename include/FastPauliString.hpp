@@ -39,7 +39,13 @@ struct FastPauliString {
         unsigned int index;
 
         inline symbol_iterator(const dtype& a, const dtype& b, const unsigned int index)
-        : a(a), b(b), index(index) {}
+        : a(a), b(b), index(index) {
+            auto type = (*(*this)).second;
+            while(this->index < 64u && type == 0u) {
+                this->index++;
+                type = (*(*this)).second;
+            }
+        }
 
         inline bool operator==(const symbol_iterator& other) const {
             return this->index == other.index;
@@ -53,10 +59,7 @@ struct FastPauliString {
             auto type = 0u;
             while(this->index < 64u && type == 0u) {
                 this->index++;
-                type = (
-                    int(bool(this->a & (1u << this->index))) |
-                    (int(bool(this->b & (1u << this->index))) << 1u)
-                );
+                type = (*(*this)).second;
             }
 
             return *this;
@@ -64,8 +67,8 @@ struct FastPauliString {
 
         inline pair<int, int> operator*() const {
             const auto type = (
-                int(bool(this->a & (1u << this->index))) |
-                (int(bool(this->b & (1u << this->index))) << 1u)
+                int(bool(this->a & (1lu << this->index))) |
+                (int(bool(this->b & (1lu << this->index))) << 1lu)
             );
 
             return {this->index, type};
@@ -100,27 +103,27 @@ struct FastPauliString {
         switch(type)
         {
         case 0u:
-            this->a &= ~(1u << idx);
-            this->b &= ~(1u << idx);
+            this->a &= ~(1lu << idx);
+            this->b &= ~(1lu << idx);
             break;
-        case 1u:
-            this->a |= 1u << idx;
-            this->b &= ~(1u << idx);
+        case 1lu:
+            this->a |= 1lu << idx;
+            this->b &= ~(1lu << idx);
             break;
         case 2u:
-            this->a &= ~(1u << idx);
-            this->b |= 1u << idx;
+            this->a &= ~(1lu << idx);
+            this->b |= 1lu << idx;
             break;
         case 3u:
-            this->a |= 1u << idx;
-            this->b |= 1u << idx;
+            this->a |= 1lu << idx;
+            this->b |= 1lu << idx;
         }
     }
 
     inline unsigned int operator[](const unsigned int idx) const {
         return (
-            int(bool(this->a & (1u << idx))) |
-            (int(bool(this->b & (1u << idx))) << 1u)
+            int(bool(this->a & (1lu << idx))) |
+            (int(bool(this->b & (1lu << idx))) << 1lu)
         );
     }
 
@@ -205,7 +208,7 @@ struct FastPauliString {
         return !(
             bit_count(
                 this->is_non_trivial() & other.is_non_trivial() & this->is_different(other)
-            ) & 1u
+            ) & 1lu
         );
     }
 
@@ -215,11 +218,11 @@ struct FastPauliString {
         const auto num_sigma_y = bit_count(this->is_sigma_y());
 
         // is there a factor i*i=-1 left?
-        if((num_sigma_y & 3u) > 1u) {
+        if((num_sigma_y & 3u) > 1lu) {
             result *= -1.0;
         }
 
-        if(num_sigma_y & 1u) {
+        if(num_sigma_y & 1lu) {
             result *= 1.0i;
         }
 
@@ -229,7 +232,7 @@ struct FastPauliString {
     inline pair<Configuration, complex<double>> apply(Configuration conf) const {
         complex<double> factor = this->complex_prefactor();
 
-        if(bit_count((~conf) & (this->is_sigma_z() | this->is_sigma_y())) & 1u) {
+        if(bit_count((~conf) & (this->is_sigma_z() | this->is_sigma_y())) & 1lu) {
             factor *= -1.0;
         }
 
@@ -244,7 +247,7 @@ struct FastPauliString {
         const auto is_sigma_yz = this->is_sigma_y() | this->is_sigma_z();
 
         for(auto conf = 0u; conf < dim_N; conf++) {
-            const auto factor = bit_count((~conf) & is_sigma_yz) & 1u ? -1.0 : 1.0;
+            const auto factor = bit_count((~conf) & is_sigma_yz) & 1lu ? -1.0 : 1.0;
             out_state[conf ^ is_flipping] = prefactor * factor * in_state[conf];
         }
     }
@@ -289,7 +292,7 @@ inline ostream& operator<<(ostream& os, const FastPauliString& pauli_string) {
 
 inline decltype(auto) operator*(const FastPauliString& a, const FastPauliString& b) {
     complex<double> factor = 1.0;
-    if(bit_count(a.epsilon_is_negative(b)) & 1u) {
+    if(bit_count(a.epsilon_is_negative(b)) & 1lu) {
         factor *= -1.0;
     }
 
@@ -298,11 +301,11 @@ inline decltype(auto) operator*(const FastPauliString& a, const FastPauliString&
     );
 
     // is there a factor i*i=-1 left?
-    if((num_epsilon & 3u) > 1u) {
+    if((num_epsilon & 3u) > 1lu) {
         factor *= -1.0;
     }
 
-    if(num_epsilon & 1u) {
+    if(num_epsilon & 1lu) {
         factor *= 1.0i;
     }
 
@@ -315,12 +318,12 @@ inline decltype(auto) commutator(const FastPauliString& a, const FastPauliString
         a.is_non_trivial() & b.is_non_trivial() & a.is_different(b)
     );
 
-    if(!(num_epsilon & 1u)) {
+    if(!(num_epsilon & 1lu)) {
         return make_pair(complex<double>(0.0), FastPauliString());
     }
 
     complex<double> factor = 2.0i;
-    if(bit_count(a.epsilon_is_negative(b)) & 1u) {
+    if(bit_count(a.epsilon_is_negative(b)) & 1lu) {
         factor *= -1.0;
     }
 
@@ -342,15 +345,17 @@ template<>
 struct hash<quantum_expression::FastPauliString> {
     inline size_t operator()(const quantum_expression::FastPauliString& pauli_string) const {
         auto scrambled_a = pauli_string.a ^ 2679497229238437802u;
-        scrambled_a ^= scrambled_a >> 32u;
-        scrambled_a ^= scrambled_a >> 16u;
-        scrambled_a ^= scrambled_a >> 8u;
+        scrambled_a ^= scrambled_a >> 32lu;
+        scrambled_a ^= scrambled_a >> 16lu;
+        scrambled_a ^= (scrambled_a >> 8lu) | (scrambled_a << 8lu);
 
-        auto scrambled_b = pauli_string.b ^ 13352235226160897230u;
-        scrambled_b ^= scrambled_b >> 32u;
-        scrambled_b ^= scrambled_b >> 16u;
-        scrambled_b ^= scrambled_b >> 8u;
+        auto scrambled_b = pauli_string.b ^ 13352235226160897230lu;
+        scrambled_b ^= scrambled_b >> 32lu;
+        scrambled_b ^= scrambled_b >> 16lu;
+        scrambled_b ^= (scrambled_b >> 6lu) | (scrambled_b << 6lu);
 
+        // it is crucial to have a different scrambling for a and b.
+        // Otherwise all pure sigma_z strings would have the same hash.
         return scrambled_a ^ scrambled_b;
     }
 };
