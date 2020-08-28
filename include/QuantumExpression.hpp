@@ -485,6 +485,30 @@ public:
         return xt::pytensor<Coefficient, 1u>(result);
     }
 
+    decltype(auto) get_vector() const {
+        using shape_type = typename xt::pytensor<Coefficient, 1u>::shape_type;
+
+        xt::pytensor<Coefficient, 1u> result(shape_type{(long int)this->size()});
+
+        auto i = 0u;
+        for(const auto& term : *this) {
+            result[i] = term.second;
+
+            i++;
+        }
+
+        return result;
+    }
+
+    void set_vector(const xt::pytensor<Coefficient, 1u>& vec) {
+        auto i = 0u;
+        for(auto& term : *this) {
+            term.second = vec[i];
+
+            i++;
+        }
+    }
+
 #endif
 
     inline Coefficient trace(const unsigned int N) const {
