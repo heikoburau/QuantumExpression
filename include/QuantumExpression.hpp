@@ -93,6 +93,12 @@ public:
         }
     }
 
+    inline void assign(const Coefficient& x) {
+        for(auto& term : *this) {
+            term.second = x;
+        }
+    }
+
     inline This dagger() const {
         This result;
         result.reserve(this->size());
