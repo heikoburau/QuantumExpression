@@ -64,6 +64,38 @@ TEST_CASE("Test PauliString::commutes_with 2") {
     REQUIRE(!b.commutes_with(d));
 }
 
+
+TEST_CASE("Test FastPauliString::commutes_with 1") {
+
+    FastPauliString a = {{0, 1}};
+    FastPauliString b = {{0, 1}};
+    FastPauliString c = {{1, 1}};
+    FastPauliString d = {{0, 2}};
+
+    REQUIRE(a.commutes_with(b));
+    REQUIRE(a.commutes_with(c));
+    REQUIRE(c.commutes_with(d));
+
+    REQUIRE(!b.commutes_with(d));
+    REQUIRE(!a.commutes_with(d));
+}
+
+TEST_CASE("Test FastPauliString::commutes_with 2") {
+
+    FastPauliString a = {{2, 1}, {3, 1}};
+    FastPauliString b = {{2, 2}, {3, 2}};
+    FastPauliString c = {{3, 2}, {4, 3}};
+    FastPauliString d = {{2, 1}};
+
+    REQUIRE(a.commutes_with(a));
+    REQUIRE(a.commutes_with(b));
+    REQUIRE(b.commutes_with(c));
+    REQUIRE(!a.commutes_with(c));
+    REQUIRE(c.commutes_with(d));
+    REQUIRE(a.commutes_with(d));
+    REQUIRE(!b.commutes_with(d));
+}
+
 // TEST_CASE("Test PauliString multiplication 1") {
 
 //     PauliString a = {{3, 3}};
@@ -139,6 +171,9 @@ TEST_CASE("Test PauliExpression") {
     REQUIRE(((3.0+3.0i) * PauliExpression(imap{{3, 3}, {0, 1}})).get_coefficient() == 3.0+3i);
 
     REQUIRE(d * e == PauliExpression({{0, 3}, {1, 3}, {2, 1}}, 0.25i));
+
+    REQUIRE(e * e == PauliExpression(0.25));
+    REQUIRE(d * d * e == 0.25 * e);
 }
 
 TEST_CASE("Test rotate by") {
