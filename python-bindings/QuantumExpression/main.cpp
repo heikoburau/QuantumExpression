@@ -43,11 +43,22 @@ PYBIND11_MODULE(_QuantumExpression, m)
         .def_property_readonly("max_index", &PauliString::max_index)
         .def_property_readonly("min_index", &PauliString::min_index);
 
+    py::class_<FastPauliString>(m, "FastPauliString")
+        .def(py::self == py::self)
+        .def(py::self != py::self)
+        .def("__bool__", &FastPauliString::cast_to_bool)
+        .def("__len__", &FastPauliString::size)
+        .def("__str__", &FastPauliString::str)
+        .def("__repr__", &FastPauliString::str)
+        .def("__hash__", [](const FastPauliString& pauli_string) {
+            return std::hash<FastPauliString>()(pauli_string);
+        });
+
     py::class_<PauliExpression>(m, "PauliExpression")
         .def(py::init<const complex<double>&>())
         .def(py::init<const int, const int>())
         .def(py::init<const map<int, int>&>())
-        .def(py::init<const PauliString&, const complex<double>&>())
+        .def(py::init<const typename PauliExpression::QuantumString&, const complex<double>&>())
         .def(py::init<const PauliExpression&>())
         .def(py::self == py::self)
         .def(py::self == complex<double>())

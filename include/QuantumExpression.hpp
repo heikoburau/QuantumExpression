@@ -1,5 +1,6 @@
 #pragma once
 
+#include "FastPauliString.hpp"
 #include "QuantumString.hpp"
 #include "Spins.hpp"
 
@@ -112,7 +113,7 @@ public:
     }
 
     inline bool operator==(const Coefficient& number) const {
-        if(this->terms.empty()) {
+        if(this->empty()) {
             return number == 0.0;
         }
 
@@ -152,25 +153,17 @@ public:
         }
     }
 
+    inline bool empty() const {
+        return this->terms.empty();
+    }
+
     string str() const {
         stringstream result;
 
-        forward_list<int> all_indices;
-        for(const auto& term : *this) {
-            const auto indices = term.first.get_indices();
-            copy(
-                indices.begin(),
-                indices.end(),
-                front_inserter(all_indices)
-            );
-        }
-        if(all_indices.empty()) {
-            result << "QuantumExpression " << this->get_coefficient() << endl;
+        if(this->empty()) {
+            result << "0 * \"\"\n";
             return result.str();
         }
-
-        const int min = *min_element(all_indices.begin(), all_indices.end());
-        const int max = *max_element(all_indices.begin(), all_indices.end());
 
         vector<Term> sorted_terms(this->begin(), this->end());
         sort(
@@ -181,18 +174,20 @@ public:
             }
         );
 
-        result << "QuantumExpression " << min << ":\n";
+        auto indent = 0u;
         for(const auto& term : sorted_terms) {
-            result << right << setw(20) << term.second << " -> ";
-            for(int i = min; i <= max; i++) {
-                if(term.first.contains(i)) {
-                    result << term.first[i].str();
-                }
-                else {
-                    result << " ";
-                }
+            stringstream coeff_str;
+            coeff_str.precision(5);
+            coeff_str << term.second;
+            const auto length = coeff_str.str().length();
+            if(length > indent) {
+                indent = length;
             }
-            result << endl;
+        }
+
+        result.precision(5);
+        for(const auto& term : sorted_terms) {
+            result << right << setw(indent + 1) << term.second << " * " << term.first.str() << endl;
         }
 
         return result.str();
@@ -217,6 +212,23 @@ public:
         }
 
         return *this;
+    }
+
+    inline void add(const Coefficient& coefficient, const QuantumString& quantum_string) {
+        auto search = this->terms.find(quantum_string);
+
+        if(search == this->terms.end()) {
+            // TODO: try using `emplace`
+            if(coefficient != 0.0) {
+                this->insert(Term({quantum_string, coefficient}));
+            }
+        }
+        else {
+            search->second += coefficient;
+            if(search->second == 0.0) {
+                this->terms.erase(search);
+            }
+        }
     }
 
     inline This& operator-=(const This& other) {
@@ -527,17 +539,10 @@ public:
         Coefficient result = 0.0;
 
         for(const auto& term : *this) {
-            bool has_no_sigma_yz = true;
-            for(const auto& symbol : term.first) {
-                if(symbol.op.type != 1u) {
-                    has_no_sigma_yz = false;
-                    break;
-                }
-            }
-
-            if(has_no_sigma_yz) {
+            if(term.first.has_no_sigma_yz()) {
                 result += term.second;
             }
+
         }
 
         return result;
@@ -709,7 +714,7 @@ inline QuantumExpression<QuantumString, Coefficient> mul(
     const double threshold = 0.0
 ) {
     QuantumExpression<QuantumString, Coefficient> result;
-    result.terms.reserve(2 * a.terms.size() * b.terms.size());
+    result.terms.reserve(a.size() * b.size());
 
     for(const auto& b_term : b) {
         QuantumExpression<QuantumString, Coefficient> a_times_b_term;
@@ -728,6 +733,33 @@ inline QuantumExpression<QuantumString, Coefficient> mul(
         }
 
         result += a_times_b_term;
+    }
+
+    return result;
+}
+
+template<typename Coefficient>
+inline QuantumExpression<FastPauliString, Coefficient> mul(
+    const QuantumExpression<FastPauliString, Coefficient>& a,
+    const QuantumExpression<FastPauliString, Coefficient>& b,
+    const double threshold = 0.0
+) {
+    QuantumExpression<FastPauliString, Coefficient> result;
+    result.terms.reserve(a.size() * b.size());
+
+    for(const auto& b_term : b) {
+        for(const auto& a_term : a) {
+            if(abs(a_term.second * b_term.second) < threshold) {
+                continue;
+            }
+
+            const auto factor_and_string = a_term.first * b_term.first;
+
+            result += QuantumExpression<FastPauliString, Coefficient>(
+                factor_and_string.second,
+                factor_and_string.first * a_term.second * b_term.second
+            );
+        }
     }
 
     return result;
@@ -784,7 +816,7 @@ inline QuantumExpression<QuantumString, Coefficient> operator/(
 }
 
 
-using PauliExpression = QuantumExpression<PauliString>;
+using PauliExpression = QuantumExpression<FastPauliString>;
 using FermionExpression = QuantumExpression<FermionString>;
 
 } // quantum_expression

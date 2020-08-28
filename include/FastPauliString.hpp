@@ -1,6 +1,5 @@
 #include "PauliOperator.hpp"
 
-#include <builtin_types.h>
 #include <cstdint>
 #include <initializer_list>
 #include <forward_list>
@@ -9,8 +8,8 @@
 #include <complex>
 #include <iterator>
 #include <vector>
+#include <map>
 #include <string>
-
 
 
 namespace quantum_expression {
@@ -32,8 +31,10 @@ struct FastPauliString {
     dtype a, b;
 
     using Configuration = typename PauliOperator::Configuration;
+    using QuantumOperator = PauliOperator;
 
-    FastPauliString() = default;
+    inline FastPauliString() : a(0), b(0) {};
+    inline FastPauliString(const dtype& a, const dtype& b) : a(a), b(b) {};
 
     inline FastPauliString(initializer_list<pair<int, PauliOperator>> symbols) {
         this->a = this->b = dtype(0u);
@@ -47,7 +48,7 @@ struct FastPauliString {
         this->a = this->b = dtype(0u);
 
         for(const auto& symbol : symbols) {
-            this->set_at(symbol.first, symbol.second.type);
+            this->set_at(symbol.first, symbol.second);
         }
     }
 
@@ -82,6 +83,10 @@ struct FastPauliString {
             int(bool(this->a & (1u << idx))) |
             (int(bool(this->b & (1u << idx))) << 1u)
         );
+    }
+
+    inline pair<FastPauliString, double> dagger() const {
+        return {FastPauliString(*this), 1.0};
     }
 
     inline bool contains(const int index) const {
@@ -137,8 +142,16 @@ struct FastPauliString {
         return (this->a) & (this->b);
     }
 
-    inline dtype is_diagonal() const {
+    inline dtype is_diagonal_bitwise() const {
+        return ~(this->a ^ this->b);
+    }
+
+    inline bool is_diagonal() const {
         return !(this->a ^ this->b);
+    }
+
+    inline bool has_no_sigma_yz() const {
+        return !(this->is_sigma_y() | this->is_sigma_z());
     }
 
     inline dtype epsilon_is_negative(const FastPauliString& other) const {
@@ -163,7 +176,7 @@ struct FastPauliString {
         const auto num_sigma_y = bit_count(this->is_sigma_y());
 
         // is there a factor i*i=-1 left?
-        if(num_sigma_y & 3u > 1u) {
+        if((num_sigma_y & 3u) > 1u) {
             result *= -1.0;
         }
 
@@ -181,14 +194,14 @@ struct FastPauliString {
             factor *= -1.0;
         }
 
-        conf ^= (~this->is_diagonal());
+        conf.configuration ^= (~this->is_diagonal_bitwise());
 
         return {conf, factor};
     }
 
     inline void apply(complex<double>* out_state, complex<double>* in_state, const unsigned int dim_N) const {
         const auto prefactor = this->complex_prefactor();
-        const auto is_flipping = ~this->is_diagonal();
+        const auto is_flipping = ~this->is_diagonal_bitwise();
         const auto is_sigma_yz = this->is_sigma_y() | this->is_sigma_z();
 
         for(auto conf = 0u; conf < dim_N; conf++) {
@@ -208,7 +221,7 @@ struct FastPauliString {
         result << "\"";
         for(auto i = 0u; i < 64u; i++) {
             if(this->contains(i)) {
-                result << PauliOperator((*this)[i]).str();
+                result << PauliOperator(static_cast<int>((*this)[i])).str();
             }
             else {
                 result << " ";
@@ -238,7 +251,7 @@ inline decltype(auto) operator*(const FastPauliString& a, const FastPauliString&
     );
 
     // is there a factor i*i=-1 left?
-    if(num_epsilon & 3u > 1u) {
+    if((num_epsilon & 3u) > 1u) {
         factor *= -1.0;
     }
 
@@ -246,7 +259,7 @@ inline decltype(auto) operator*(const FastPauliString& a, const FastPauliString&
         factor *= 1.0i;
     }
 
-    return {factor, FastPauliString{a.a ^ b.a, a.b ^ b.b}};
+    return make_pair(factor, FastPauliString(a.a ^ b.a, a.b ^ b.b));
 }
 
 
@@ -256,7 +269,7 @@ inline decltype(auto) commutator(const FastPauliString& a, const FastPauliString
     );
 
     if(!(num_epsilon & 1u)) {
-        return {complex<double>(0.0), FastPauliString()};
+        return make_pair(complex<double>(0.0), FastPauliString());
     }
 
     complex<double> factor = 2.0i;
@@ -265,11 +278,11 @@ inline decltype(auto) commutator(const FastPauliString& a, const FastPauliString
     }
 
     // is there a factor i*i=-1 left?
-    if(num_epsilon & 3u == 3u) {
+    if((num_epsilon & 3u) == 3u) {
         factor *= -1.0;
     }
 
-    return {factor, FastPauliString{a.a ^ b.a, a.b ^ b.b}};
+    return make_pair(factor, FastPauliString(a.a ^ b.a, a.b ^ b.b));
 }
 
 
@@ -278,10 +291,11 @@ inline decltype(auto) commutator(const FastPauliString& a, const FastPauliString
 
 namespace std {
 
+template<>
 struct hash<quantum_expression::FastPauliString> {
     inline size_t operator()(const quantum_expression::FastPauliString& pauli_string) const {
         const auto is_non_trivial = pauli_string.is_non_trivial();
-        return is_non_trivial + bit_count(is_non_trivial);
+        return is_non_trivial + quantum_expression::bit_count(is_non_trivial);
     }
 };
 

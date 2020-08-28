@@ -95,6 +95,10 @@ TEST_CASE("Test PauliExpression") {
     PauliExpression a({{0, 2}}, 1.0);
     PauliExpression b({{0, 3}, {1, 1}}, -1.0);
     PauliExpression c({{0, 2}, {6, 1}}, 0.5);
+    PauliExpression d({{0, 2}, {1, 1}, {2, 2}, {3, 3}}, 0.5);
+    PauliExpression e({{0, 1}, {1, 2}, {2, 3}, {3, 3}}, 0.5);
+
+    using PauliString = typename PauliExpression::QuantumString;
 
     REQUIRE(a + b == PauliExpression{
         {PauliString{{0, 2}}, 1.0},
@@ -133,6 +137,8 @@ TEST_CASE("Test PauliExpression") {
 
     REQUIRE(PauliExpression(5.0).get_coefficient() == 5.0+0i);
     REQUIRE(((3.0+3.0i) * PauliExpression(imap{{3, 3}, {0, 1}})).get_coefficient() == 3.0+3i);
+
+    REQUIRE(d * e == PauliExpression({{0, 3}, {1, 3}, {2, 1}}, 0.25i));
 }
 
 TEST_CASE("Test rotate by") {
@@ -143,20 +149,6 @@ TEST_CASE("Test rotate by") {
     REQUIRE(a.rotate_by(generator).apply_threshold(1e-10) == PauliExpression(
         {{0, 3}}, 1.0
     ));
-}
-
-TEST_CASE("Test fast rotate by") {
-    PauliExpression a({{0, 1}}, 1.0);
-    PauliExpression b({{1, 2}}, 1.0);
-
-    PauliExpression generator_a({{0, 2}}, 1i * M_PI / 4.0);
-    PauliExpression generator_b({{1, 1}}, 1i * M_PI / 3.0);
-
-    REQUIRE(a.fast_rotate_by(generator_a).apply_threshold(1e-10) == PauliExpression(
-        {{0, 3}}, 1.0
-    ));
-
-    REQUIRE((a*b).fast_rotate_by(generator_a + generator_b) == (a*b).rotate_by(generator_a + generator_b));
 }
 
 TEST_CASE("Test max_norm") {
@@ -207,6 +199,18 @@ TEST_CASE("Test apply operator on spins") {
     PauliString a = {{0, 2}};
     PauliString b = {{0, 3}, {1, 1}};
     PauliString c = {{4, 2}, {6, 1}};
+
+    Spins spins(0u);
+
+    REQUIRE(a.apply(spins) == make_pair(Spins(1u), -1i));
+    REQUIRE(b.apply(spins) == make_pair(Spins(2u), -1.0+0i));
+    REQUIRE(c.apply(spins) == make_pair(Spins((1u << 4) | (1u << 6)), -1i));
+}
+
+TEST_CASE("Test apply operator on spins for FastPauliString") {
+    FastPauliString a = {{0, 2}};
+    FastPauliString b = {{0, 3}, {1, 1}};
+    FastPauliString c = {{4, 2}, {6, 1}};
 
     Spins spins(0u);
 

@@ -64,7 +64,7 @@ public:
     };
 
 public:
-    QuantumString() = default;
+    inline QuantumString() {};
 
     inline QuantumString(initializer_list<pair<int, QuantumOperator>> symbols) {
         this->symbols.reserve(symbols.size());
@@ -195,19 +195,28 @@ public:
         return count_if(this->symbols.begin(), this->symbols.end(), [=](const auto& s) {return s.index == index;}) > 0u;
     }
 
-    string str() const {
+    inline bool has_no_sigma_yz() const {
+        for(const auto& symbol : *this) {
+            if(symbol.op.type != 1u) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    inline string str() const {
         stringstream result;
 
         if(!(*this)) {
-            result << "QuantumString \"\"";
+            result << "\"\"";
             return result.str();
         }
 
-        const int min = this->min_index();
         const int max = this->max_index();
 
-        result << "QuantumString " << min << " -> \"";
-        for(int i = min; i <= max; i++) {
+        result << "\"";
+        for(int i = 0; i <= max; i++) {
             if(this->contains(i)) {
                 result << (*this)[i].str();
             }
@@ -380,43 +389,43 @@ public:
         return this->symbols.front().op;
     }
 
-    int min_index() const {
+    inline int min_index() const {
         return this->symbols.front().index;
     }
 
-    int max_index() const {
+    inline int max_index() const {
         return this->symbols.back().index;
     }
 
-    decltype(auto) begin() {
+    inline decltype(auto) begin() {
         return this->symbols.begin();
     }
 
-    decltype(auto) begin() const {
+    inline decltype(auto) begin() const {
         return this->symbols.begin();
     }
 
-    decltype(auto) end() {
+    inline decltype(auto) end() {
         return this->symbols.end();
     }
 
-    decltype(auto) end() const {
+    inline decltype(auto) end() const {
         return this->symbols.end();
     }
 
-    decltype(auto) rbegin() {
+    inline decltype(auto) rbegin() {
         return this->symbols.rbegin();
     }
 
-    decltype(auto) rbegin() const {
+    inline decltype(auto) rbegin() const {
         return this->symbols.rbegin();
     }
 
-    decltype(auto) rend() {
+    inline decltype(auto) rend() {
         return this->symbols.rend();
     }
 
-    decltype(auto) rend() const {
+    inline decltype(auto) rend() const {
         return this->symbols.rend();
     }
 

@@ -15,20 +15,45 @@ namespace quantum_expression {
 using namespace std;
 
 
-inline PauliExpression commutator(
-    const PauliExpression& a,
-    const PauliExpression& b
+inline QuantumExpression<PauliString> commutator(
+    const QuantumExpression<PauliString>& a,
+    const QuantumExpression<PauliString>& b
 ) {
-    PauliExpression result;
-    result.terms.reserve(max(a.size(), b.size()));
+    QuantumExpression<PauliString> result;
+    result.terms.reserve(a.size() * b.size());
 
     for(const auto& a_term : a) {
         for(const auto& b_term : b) {
             if(!a_term.first.commutes_with(b_term.first)) {
-                const PauliExpression a_expression(a_term);
-                const PauliExpression b_expression(b_term);
+                const QuantumExpression<PauliString> a_expression(a_term);
+                const QuantumExpression<PauliString> b_expression(b_term);
 
                 result += a_expression * b_expression - b_expression * a_expression;
+            }
+        }
+    }
+
+    return result;
+}
+
+
+inline QuantumExpression<FastPauliString> commutator(
+    const QuantumExpression<FastPauliString>& a,
+    const QuantumExpression<FastPauliString>& b
+) {
+    QuantumExpression<FastPauliString> result;
+    result.terms.reserve(a.size() * b.size());
+
+    for(const auto& a_term : a) {
+        for(const auto& b_term : b) {
+
+            const auto factor_and_string = commutator(a_term.first, b_term.first);
+
+            if(factor_and_string.first != 0.0) {
+                result.add(
+                    factor_and_string.first * a_term.second * b_term.second,
+                    factor_and_string.second
+                );
             }
         }
     }
