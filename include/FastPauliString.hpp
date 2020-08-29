@@ -252,6 +252,26 @@ struct FastPauliString {
         }
     }
 
+    inline FastPauliString rotate_to_smallest(unsigned int length) const {
+        const auto mask = (1lu << length) - 1lu;
+        auto result = *this;
+        auto x = *this;
+
+        for(auto i = 0u; i < length; i++) {
+            const auto a_shifted = (x.a << 1u) | (x.a >> (length - 1u));
+            const auto b_shifted = (x.b << 1u) | (x.b >> (length - 1u));
+
+            x.a = a_shifted & mask;
+            x.b = b_shifted & mask;
+
+            if(x < result) {
+                result = x;
+            }
+        }
+
+        return result;
+    }
+
     inline string str() const {
         stringstream result;
 
