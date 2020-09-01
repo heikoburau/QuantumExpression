@@ -298,6 +298,20 @@ public:
         return This(*this);
     }
 
+    inline This translationally_invariant(const unsigned int length) const {
+        This result;
+        result.reserve(this->size());
+
+        for(const auto& term : *this) {
+            result.add(
+                term.second,
+                term.first.rotate_to_smallest(length)
+            );
+        }
+
+        return result;
+    }
+
     inline This apply_threshold(const double threshold) const {
         This result;
         result.reserve(this->size());
