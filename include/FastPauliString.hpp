@@ -364,19 +364,16 @@ namespace std {
 template<>
 struct hash<quantum_expression::FastPauliString> {
     inline size_t operator()(const quantum_expression::FastPauliString& pauli_string) const {
-        auto scrambled_a = pauli_string.a ^ 2679497229238437802u;
-        scrambled_a ^= scrambled_a >> 32lu;
-        scrambled_a ^= scrambled_a >> 16lu;
-        scrambled_a ^= (scrambled_a >> 8lu) | (scrambled_a << 8lu);
-
-        auto scrambled_b = pauli_string.b ^ 13352235226160897230lu;
-        scrambled_b ^= scrambled_b >> 32lu;
-        scrambled_b ^= scrambled_b >> 16lu;
-        scrambled_b ^= (scrambled_b >> 6lu) | (scrambled_b << 6lu);
-
         // it is crucial to have a different scrambling for a and b.
         // Otherwise all pure sigma_z strings would have the same hash.
-        return scrambled_a ^ scrambled_b;
+
+        auto result = pauli_string.a ^ (
+            (pauli_string.b << 20) | (pauli_string.b >> (64 - 20))
+        );
+        result ^= result >> 32;
+        result ^= (result >> 16) | (result << 16);
+        result ^= (result >> 8) | (result << 8);
+        return result ^ 4222420308lu;
     }
 };
 
