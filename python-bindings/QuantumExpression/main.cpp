@@ -4,6 +4,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
+#include <pybind11/eigen.h>
 
 #define FORCE_IMPORT_ARRAY
 #include <xtensor-python/pytensor.hpp>
@@ -72,6 +73,7 @@ PYBIND11_MODULE(_QuantumExpression, m)
         .def(py::self != py::self)
         .def(py::self != complex<double>())
         .def("__getitem__", &PauliExpression::__getitem__)
+        .def("__setitem__", &PauliExpression::__setitem__)
         .def("__len__", &PauliExpression::size)
         .def("__str__", &PauliExpression::str)
         .def("__abs__", &PauliExpression::absolute)
@@ -212,4 +214,6 @@ PYBIND11_MODULE(_QuantumExpression, m)
     m.def("substitute", substitute);
     m.def("mul", mul<PauliString, complex<double>>);
     m.def("mul", mul<FermionString, complex<double>>);
+
+    m.def("effective_matrix", effective_matrix, py::return_value_policy::reference_internal, "op"_a, "basis"_a, "trans_inv_length"_a = 0u);
 }

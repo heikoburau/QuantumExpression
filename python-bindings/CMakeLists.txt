@@ -48,6 +48,12 @@ find_package(NumPy REQUIRED)
 set(CXX_INCLUDES ${CXX_INCLUDES} ${NUMPY_INCLUDE_DIRS})
 
 
+# Path to Eigen
+# =============
+
+set(CXX_INCLUDES ${CXX_INCLUDES} "$ENV{EIGEN_ROOT}")
+
+
 # Compiler flags
 # ==============
 

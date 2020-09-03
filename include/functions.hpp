@@ -1,6 +1,7 @@
 #pragma once
 
 #include "QuantumExpression.hpp"
+#include <Eigen/Sparse>
 #define FORCE_IMPORT_ARRAY
 #include <xtensor-python/pytensor.hpp>
 #include <vector>
@@ -283,6 +284,48 @@ inline FermionExpression substitute(
 
         result += term_result;
     }
+
+    return result;
+}
+
+
+Eigen::SparseMatrix<complex<double>> effective_matrix(
+    const PauliExpression& op, const PauliExpression& basis, const unsigned int trans_inv_length=0u
+) {
+    using SparseMatrix = Eigen::SparseMatrix<complex<double>>;
+    using Triplet = Eigen::Triplet<complex<double>>;
+
+    unordered_map<FastPauliString, unsigned int> indices_map;
+    indices_map.reserve(basis.size());
+
+    auto i = 0u;
+    for(const auto& term : basis) {
+        indices_map.insert({term.first, i++});
+    }
+
+    vector<Triplet> triplet_list;
+    triplet_list.reserve(op.size() * basis.size());
+
+    auto col = 0u;
+    for(const auto& b : basis) {
+        for(const auto& h : op) {
+            auto factor_and_string = b.first * h.first;
+            if(trans_inv_length > 0u) {
+                factor_and_string.second = factor_and_string.second.rotate_to_smallest(trans_inv_length);
+            }
+            const auto row_it = indices_map.find(factor_and_string.second);
+            if(row_it != indices_map.end()) {
+                triplet_list.push_back(Triplet(
+                    row_it->second, col, factor_and_string.first * h.second
+                ));
+            }
+        }
+
+        col++;
+    }
+
+    SparseMatrix result(basis.size(), basis.size());
+    result.setFromTriplets(triplet_list.begin(), triplet_list.end());
 
     return result;
 }

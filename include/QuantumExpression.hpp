@@ -143,10 +143,16 @@ public:
         return 0.0;
     }
 
-    inline Coefficient __getitem__(const This& other) const {
-        assert(other.size() == 1u);
+    inline Coefficient __getitem__(const QuantumString& quantum_string) const {
+        return (*this)[quantum_string];
+    }
 
-        return (*this)[other.begin()->first];
+    inline void __setitem__(const QuantumString& quantum_string, const Coefficient& value) {
+        const auto search = this->terms.find(quantum_string);
+
+        if(search != this->end()) {
+            search->second = value;
+        }
     }
 
     inline size_t size() const {
@@ -235,15 +241,10 @@ public:
 
         if(search == this->terms.end()) {
             // TODO: try using `emplace`
-            if(coefficient != 0.0) {
-                this->insert(Term({quantum_string, coefficient}));
-            }
+            this->terms.insert({quantum_string, coefficient});
         }
         else {
             search->second += coefficient;
-            if(search->second == 0.0) {
-                this->terms.erase(search);
-            }
         }
     }
 
