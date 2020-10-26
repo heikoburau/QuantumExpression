@@ -1,4 +1,5 @@
 #include "PauliOperator.hpp"
+#include "bit_operations.hpp"
 
 #include <cstdint>
 #include <initializer_list>
@@ -92,6 +93,20 @@ struct FastPauliString {
         for(const auto& symbol : symbols) {
             this->set_at(symbol.first, symbol.second);
         }
+    }
+
+    static inline FastPauliString enumerate(const unsigned int index) {
+        return FastPauliString(
+            detail::pick_bits_at_even_sites(index),
+            detail::pick_bits_at_even_sites(index >> 1u)
+        );
+    }
+
+    inline unsigned int enumeration_index() const {
+        return (
+            detail::expand_bits_to_even_sites(this->a) |
+            (detail::expand_bits_to_even_sites(this->b) << 1u)
+        );
     }
 
     inline void set_at(const unsigned int idx, const unsigned int type) {

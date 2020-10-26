@@ -466,20 +466,40 @@ public:
 
 #ifndef NO_PYTHON
 
-    decltype(auto) matrix(const unsigned int N) const {
-        const auto dim_N = 1u << N;
+    decltype(auto) matrix(const unsigned int N, const string basis) const {
+        // const auto dim_N = 1u << N;
+        auto dim_N = 0u;
+        if(basis == string("spins")) {
+            dim_N = 1u << N;
+        }
+        else if(basis == string("paulis")) {
+            dim_N = 1u << (2u * N);
+        }
 
         xt::pytensor<Coefficient, 2u> result({
             (long int)dim_N, (long int)dim_N
         });
         result = xt::zeros<Coefficient>(result.shape());
 
-        for(auto configuration = 0u; configuration < dim_N; configuration++) {
-            Configuration conf(configuration);
+        if(basis == string("spins")) {
+            for(auto configuration = 0u; configuration < dim_N; configuration++) {
+                Configuration conf(configuration);
 
-            for(const auto& conf_and_value : this->apply(conf)) {
-                if(conf_and_value.second != 0.0) {
-                    result(static_cast<unsigned int>(conf_and_value.first), configuration) += conf_and_value.second;
+                for(const auto& conf_and_value : this->apply(conf)) {
+                    if(conf_and_value.second != 0.0) {
+                        result(static_cast<unsigned int>(conf_and_value.first), configuration) += conf_and_value.second;
+                    }
+                }
+            }
+        }
+        else if(basis == string("paulis")) {
+            for(auto conf_idx = 0u; conf_idx < dim_N; conf_idx++) {
+                const auto conf = QuantumString::enumerate(conf_idx);
+
+                for(const auto& term : (*this) * conf) {
+                    if(term.second != 0.0) {
+                        result(term.first.enumeration_index(), conf_idx) += term.second;
+                    }
                 }
             }
         }
@@ -867,6 +887,34 @@ inline QuantumExpression<QuantumString, Coefficient> operator/(
 ) {
     QuantumExpression<QuantumString, Coefficient> result = x;
     result /= number;
+    return result;
+}
+
+template<typename QuantumString, typename Coefficient>
+inline QuantumExpression<QuantumString, Coefficient> operator*(
+    const QuantumExpression<QuantumString, Coefficient>& a,
+    const QuantumString& b
+) {
+    // not implemented;
+
+    return QuantumExpression<QuantumString, Coefficient>();
+}
+
+
+template<typename Coefficient>
+inline QuantumExpression<FastPauliString, Coefficient> operator*(
+    const QuantumExpression<FastPauliString, Coefficient>& a,
+    const FastPauliString& b
+) {
+    QuantumExpression<FastPauliString, Coefficient> result;
+    result.reserve(a.size());
+
+    for(const auto& term : a) {
+        const auto factor_and_string = term.first * b;
+
+        result.add(term.second * factor_and_string.first, factor_and_string.second);
+    }
+
     return result;
 }
 

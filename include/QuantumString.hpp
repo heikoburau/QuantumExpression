@@ -95,6 +95,14 @@ public:
         this->sort_symbols();
     }
 
+    static inline QuantumString enumerate(const unsigned int index) {
+        return QuantumString();
+    }
+
+    inline unsigned int enumeration_index() const {
+        return 0u;
+    }
+
     inline void sort_symbols() {
         sort(
             this->symbols.begin(),

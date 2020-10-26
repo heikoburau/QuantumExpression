@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <complex>
+#include <string>
 
 
 namespace py = pybind11;
@@ -120,7 +121,7 @@ PYBIND11_MODULE(_QuantumExpression, m)
         .def_property_readonly("bucket_count", [](const PauliExpression& pe){return pe.terms.bucket_count();})
         .def("bucket_size", [](const PauliExpression& pe, unsigned int n){return pe.terms.bucket_size(n);})
         .def("assign", &PauliExpression::assign)
-        .def("matrix", &PauliExpression::matrix)
+        .def("matrix", &PauliExpression::matrix, "N"_a, "basis"_a=std::string("spins"))
         .def("commutes_with", &PauliExpression::commutes_with)
         .def("diagonal_terms", &PauliExpression::diagonal_terms)
         .def("extract_noncommuting_with", &PauliExpression::extract_noncommuting_with)
@@ -193,7 +194,7 @@ PYBIND11_MODULE(_QuantumExpression, m)
         .def_property_readonly("diagonal_terms", &FermionExpression::diagonal_terms)
         .def_property_readonly("fermion_string", &FermionExpression::get_quantum_string)
         .def_property_readonly("quantum_string", &FermionExpression::get_quantum_string)
-        .def("matrix", &FermionExpression::matrix)
+        .def("matrix", &FermionExpression::matrix, "N"_a, "basis"_a=std::string("spins"))
         .def("commutes_with", &FermionExpression::commutes_with)
         .def("extract_noncommuting_with", &FermionExpression::extract_noncommuting_with)
         .def("vacuum_expectation_value", &FermionExpression::vacuum_expectation_value);
