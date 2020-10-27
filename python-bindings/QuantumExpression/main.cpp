@@ -128,6 +128,8 @@ PYBIND11_MODULE(_QuantumExpression, m)
         .def("expectation_value_of_plus_x_state", &PauliExpression::expectation_value_of_plus_x_state)
         .def("trace", &PauliExpression::trace);
 
+    m.def("from_pauli_vector", &PauliExpression::from_pauli_vector);
+
 
     py::class_<FermionString>(m, "FermionString")
         .def(py::self == py::self)

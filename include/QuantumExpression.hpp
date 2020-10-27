@@ -93,6 +93,21 @@ public:
         }
     }
 
+
+#ifndef NO_PYTHON
+    static inline QuantumExpression<FastPauliString, Coefficient> from_pauli_vector(const xt::pytensor<Coefficient, 1u>& vector) {
+        QuantumExpression<FastPauliString, Coefficient> result;
+        result.reserve(vector.size());
+
+        for(auto conf_idx = 0u; conf_idx < vector.size(); conf_idx++) {
+            result.add(vector(conf_idx), FastPauliString::enumerate(conf_idx));
+        }
+
+        return result;
+    }
+
+#endif // NO_PYTHON
+
     inline void assign(const Coefficient& x) {
         for(auto& term : *this) {
             term.second = x;
