@@ -103,6 +103,15 @@ public:
         return 0u;
     }
 
+    inline QuantumString roll(unsigned int shift, unsigned int length) const {
+        QuantumString result(*this);
+        for(auto& symbol : result.symbols) {
+            symbol.index = (symbol.index + shift) % length;
+        }
+
+        return result;
+    }
+
     inline void sort_symbols() {
         sort(
             this->symbols.begin(),

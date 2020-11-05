@@ -287,6 +287,17 @@ struct FastPauliString {
         return result;
     }
 
+    inline FastPauliString roll(unsigned int shift, unsigned int length) const {
+        return FastPauliString(
+            (
+                (this->a << shift) | (this->a >> (length - shift))
+            ) & ((1lu << length) - 1lu),
+            (
+                (this->b << shift) | (this->b >> (length - shift))
+            ) & ((1lu << length) - 1lu)
+        );
+    }
+
     inline string str() const {
         stringstream result;
 

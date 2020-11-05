@@ -341,6 +341,20 @@ public:
         return result;
     }
 
+    inline This roll(unsigned int shift, unsigned int length) const {
+        This result;
+        result.reserve(this->size());
+
+        for(const auto& term : *this) {
+            result.add(
+                term.second,
+                term.first.roll(shift, length)
+            );
+        }
+
+        return result;
+    }
+
     inline This crop(const double threshold) const {
         return this->apply_threshold(threshold);
     }
