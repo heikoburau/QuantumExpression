@@ -331,4 +331,27 @@ Eigen::SparseMatrix<complex<double>> effective_matrix(
 }
 
 
+inline decltype(auto) su2_su2_matrix(const PauliExpression& expr_a, const PauliExpression& expr_b, const unsigned int N) {
+    const auto dim = 1u << (2u * N);
+
+    xt::pytensor<complex<double>, 2> result(
+        array<long int, 2>({static_cast<long int>(dim), static_cast<long int>(dim)})
+    );
+
+    for(auto conf_idx = 0u; conf_idx < dim; conf_idx++) {
+        const auto conf = FastPauliString::enumerate(conf_idx);
+
+        for(const auto& first_term : expr_a * conf) {
+            if(first_term.second != 0.0) {
+                for(const auto& second_term : first_term.first * expr_b) {
+                    result(second_term.first.enumeration_index(), conf_idx) += first_term.second * second_term.second;
+                }
+            }
+        }
+    }
+
+    return result;
+}
+
+
 } // quantum_expression

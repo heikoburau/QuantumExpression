@@ -947,6 +947,23 @@ inline QuantumExpression<FastPauliString, Coefficient> operator*(
     return result;
 }
 
+template<typename Coefficient>
+inline QuantumExpression<FastPauliString, Coefficient> operator*(
+    const FastPauliString& a,
+    const QuantumExpression<FastPauliString, Coefficient>& b
+) {
+    QuantumExpression<FastPauliString, Coefficient> result;
+    result.reserve(b.size());
+
+    for(const auto& term : b) {
+        const auto factor_and_string = a * term.first;
+
+        result.add(term.second * factor_and_string.first, factor_and_string.second);
+    }
+
+    return result;
+}
+
 
 using PauliExpression = QuantumExpression<FastPauliString>;
 using FermionExpression = QuantumExpression<FermionString>;

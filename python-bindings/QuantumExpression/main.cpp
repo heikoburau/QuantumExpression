@@ -64,6 +64,7 @@ PYBIND11_MODULE(_QuantumExpression, m)
         });
 
     py::class_<PauliExpression>(m, "PauliExpression")
+        .def(py::init<>())
         .def(py::init<const complex<double>&>())
         .def(py::init<const int, const int>())
         .def(py::init<const map<int, int>&>())
@@ -218,6 +219,7 @@ PYBIND11_MODULE(_QuantumExpression, m)
     m.def("substitute", substitute);
     m.def("mul", mul<PauliString, complex<double>>);
     m.def("mul", mul<FermionString, complex<double>>);
+    m.def("su2_su2_matrix", su2_su2_matrix);
 
     m.def("effective_matrix", effective_matrix, py::return_value_policy::reference_internal, "op"_a, "basis"_a, "trans_inv_length"_a = 0u);
 }
