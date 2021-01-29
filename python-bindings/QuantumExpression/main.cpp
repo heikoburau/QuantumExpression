@@ -46,6 +46,7 @@ PYBIND11_MODULE(_QuantumExpression, m)
         .def_property_readonly("min_index", &PauliString::min_index);
 
     py::class_<FastPauliString>(m, "FastPauliString")
+        .def_static("enumerate", FastPauliString::enumerate)
         .def(py::self == py::self)
         .def(py::self != py::self)
         .def("__bool__", &FastPauliString::cast_to_bool)
@@ -222,4 +223,6 @@ PYBIND11_MODULE(_QuantumExpression, m)
     m.def("su2_su2_matrix", su2_su2_matrix);
 
     m.def("effective_matrix", effective_matrix, py::return_value_policy::reference_internal, "op"_a, "basis"_a, "trans_inv_length"_a = 0u);
+
+    m.def("state_to_matrix", state_to_matrix);
 }

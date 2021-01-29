@@ -179,6 +179,32 @@ inline decltype(auto) partial_trace(const xt::pytensor<complex<double>, 1>& stat
 }
 
 
+inline decltype(auto) state_to_matrix(const xt::pytensor<complex<double>, 1>& state) {
+    const auto dim = static_cast<unsigned int>(sqrt(state.shape()[0]));
+
+    xt::pytensor<complex<double>, 2> result(
+        array<long int, 2>({
+            static_cast<long int>(dim),
+            static_cast<long int>(dim)
+        })
+    );
+    result = xt::zeros<complex<double>>({dim, dim});
+
+    for(auto n = 0u; n < state.shape()[0]; n++) {
+        const auto op = FastPauliString::enumerate(n);
+        const auto op_factor = state[n];
+
+        for(auto i = 0u; i < dim; i++) {
+            const auto conf_and_factor = op.apply(Spins(i));
+
+            result(conf_and_factor.first.configuration, i) += op_factor * conf_and_factor.second;
+        }
+    }
+
+    return result;
+}
+
+
 template<typename QuantumExpression_t>
 inline double frobenius_norm(const QuantumExpression_t& expr, const unsigned int N) {
     const auto expr_dagger = expr.dagger();
@@ -337,6 +363,7 @@ inline decltype(auto) su2_su2_matrix(const PauliExpression& expr_a, const PauliE
     xt::pytensor<complex<double>, 2> result(
         array<long int, 2>({static_cast<long int>(dim), static_cast<long int>(dim)})
     );
+    result = xt::zeros<complex<double>>(result.shape());
 
     for(auto conf_idx = 0u; conf_idx < dim; conf_idx++) {
         const auto conf = FastPauliString::enumerate(conf_idx);

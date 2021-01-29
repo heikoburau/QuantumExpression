@@ -2,6 +2,7 @@ from ._QuantumExpression import PauliExpression
 from ._QuantumExpression import FermionExpression
 from scipy import sparse
 import numpy as np
+from collections import defaultdict
 
 
 def __repr__(self):
@@ -90,8 +91,44 @@ def sigma_z_product(n):
     return sigma_z_products[n]
 
 
-def sparse_matrix(self, N):
+Sx = PauliExpression(0, 1).matrix(1, "paulis")
+Sy = PauliExpression(0, 2).matrix(1, "paulis")
+Sz = PauliExpression(0, 3).matrix(1, "paulis")
+
+
+def sparse_matrix(self, N, basis="spins", U_list=None):
+    assert basis in ("spins", "paulis")
+
     result = 0
+
+    if basis == "paulis":
+        if U_list is None:
+            U_list = [np.eye(4)] * N
+        if not isinstance(U_list, (list, tuple)):
+            U_list = [U_list] * N
+
+        S_map = [
+            {
+                1: sparse.csr_matrix(U @ Sx @ U.T.conj()),
+                2: sparse.csr_matrix(U @ Sy @ U.T.conj()),
+                3: sparse.csr_matrix(U @ Sz @ U.T.conj())
+            }
+            for U in U_list
+        ]
+        for term in self:
+            sparse_string = sparse.identity(4**N)
+            for i, op in term.quantum_string:
+                right = sparse.identity(4**i) if i > 0 else 1
+                left = sparse.identity(4**(N - i - 1)) if i < N - 1 else 1
+                sparse_op = sparse.kron(
+                    left,
+                    sparse.kron(S_map[i][op], right)
+                )
+                sparse_string *= sparse_op
+
+            result += term.coefficient * sparse_string
+
+        return result
 
     is_fermionic = isinstance(self, FermionExpression)
     sparse_matrices = sparse_fermion_matrices if is_fermionic else sparse_pauli_matrices
