@@ -171,6 +171,15 @@ def effective_matrix(self, basis):
     return sparse.csr_matrix((data, (row_ind, col_ind)), shape=(len(basis), len(basis)))
 
 
+def vector(self, N):
+    result = np.zeros(4**N)
+    for term in self:
+        result[term.pauli_string.index] = term.coefficient
+
+    return result
+
+
 setattr(PauliExpression, "sparse_matrix", sparse_matrix)
 setattr(FermionExpression, "sparse_matrix", sparse_matrix)
 setattr(PauliExpression, "effective_matrix", effective_matrix)
+setattr(PauliExpression, "vector", vector)

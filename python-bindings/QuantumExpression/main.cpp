@@ -53,6 +53,7 @@ PYBIND11_MODULE(_QuantumExpression, m)
         .def("__len__", &FastPauliString::size)
         .def("__str__", &FastPauliString::str)
         .def("__repr__", &FastPauliString::str)
+        .def_property_readonly("index", &FastPauliString::enumeration_index)
         .def(
             "__iter__",
             [](const FastPauliString& x){
