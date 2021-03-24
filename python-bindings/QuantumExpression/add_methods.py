@@ -1,8 +1,7 @@
-from ._QuantumExpression import PauliExpression
+from ._QuantumExpression import PauliExpression, FastPauliString
 from ._QuantumExpression import FermionExpression
 from scipy import sparse
 import numpy as np
-from collections import defaultdict
 
 
 def __repr__(self):
@@ -172,9 +171,23 @@ def effective_matrix(self, basis):
 
 
 def vector(self, N):
-    result = np.zeros(4**N)
+    result = np.zeros(4**N, dtype=complex)
     for term in self:
         result[term.pauli_string.index] = term.coefficient
+
+    return result
+
+
+@staticmethod
+def from_vector(vec, threshold=0):
+    result = 0
+
+    for i, v in enumerate(vec):
+        if abs(v) > threshold:
+            result += PauliExpression(
+                FastPauliString.enumerate(i),
+                v
+            )
 
     return result
 
@@ -183,3 +196,4 @@ setattr(PauliExpression, "sparse_matrix", sparse_matrix)
 setattr(FermionExpression, "sparse_matrix", sparse_matrix)
 setattr(PauliExpression, "effective_matrix", effective_matrix)
 setattr(PauliExpression, "vector", vector)
+setattr(PauliExpression, "from_vector", from_vector)
