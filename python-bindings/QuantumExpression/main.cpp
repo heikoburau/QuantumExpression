@@ -25,6 +25,11 @@ PYBIND11_MODULE(_QuantumExpression, m)
 {
     xt::import_numpy();
 
+    py::class_<Spins>(m, "Spins")
+        .def(py::init<>())
+        .def(py::init<Spins::type>())
+        .def_readwrite("index", &Spins::configuration);
+
     py::class_<PauliString>(m, "PauliString")
         .def(py::self == py::self)
         .def(py::self != py::self)
@@ -63,6 +68,9 @@ PYBIND11_MODULE(_QuantumExpression, m)
         )
         .def("__hash__", [](const FastPauliString& pauli_string) {
             return std::hash<FastPauliString>()(pauli_string);
+        })
+        .def("__call__", [](const FastPauliString& pauli_string, const FastPauliString::Configuration& conf){
+            return pauli_string.apply(conf);
         });
 
     py::class_<PauliExpression>(m, "PauliExpression")
