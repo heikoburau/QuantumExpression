@@ -6,7 +6,7 @@
 namespace quantum_expression {
 
 struct Spins {
-    using type = uint32_t;
+    using type = uint64_t;
     type configuration;
 
     Spins() = default;
