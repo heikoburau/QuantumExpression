@@ -382,16 +382,12 @@ public:
     }
 
     inline This exp(const double threshold=0.0) const {
-        // WARNING: only imaginary terms are considered
-
         This result(1.0);
 
         for(const auto& term : *this) {
-            const double angle = term.second.imag();
-
             const This x = {
-                Term({QuantumString(), cos(angle)}),
-                Term({term.first, 1i * sin(angle)})
+                Term({QuantumString(), cosh(term.second)}),
+                Term({term.first, sinh(term.second)})
             };
 
             result = result * x;
@@ -404,7 +400,7 @@ public:
         return result;
     }
 
-    inline This rotate_by(const This& generator, const double exp_threshold=0.0, const double threshold=0.0) const {
+    inline This transform(const This& generator, const double exp_threshold=0.0, const double threshold=0.0) const {
         // CAUTION: The `exp_threshold` parameter belongs to the cutoff of the exponentiated `generator` and
         // not to the final result.
 
@@ -432,6 +428,10 @@ public:
         }
 
         return result;
+    }
+
+    inline This rotate_by(const This& generator, const double exp_threshold=0.0, const double threshold=0.0) const {
+        return this->transform(generator, exp_threshold, threshold);
     }
 
     inline This diagonal_terms() const {
