@@ -381,7 +381,7 @@ public:
         return cropped * sqrt(beta / beta_c);
     }
 
-    inline This exp(const double threshold=0.0) const {
+    inline This exp(const double threshold=0.0, const bool keep_norm=true) const {
         This result(1.0);
 
         for(const auto& term : *this) {
@@ -393,14 +393,21 @@ public:
             result = result * x;
 
             if(threshold > 0.0) {
-                result = result.crop_rotation(threshold);
+                if(keep_norm) {
+                    result = result.crop_rotation(threshold);
+                } else {
+                    result = result.crop(threshold);
+                }
             }
         }
 
         return result;
     }
 
-    inline This transform(const This& generator, const double exp_threshold=0.0, const double threshold=0.0) const {
+    inline This transform(
+        const This& generator, const double exp_threshold=0.0, const double threshold=0.0,
+        const bool keep_norm=false
+    ) const {
         // CAUTION: The `exp_threshold` parameter belongs to the cutoff of the exponentiated `generator` and
         // not to the final result.
 
@@ -419,7 +426,7 @@ public:
                 }
             }
 
-            auto rotated_term = relevant_generator.exp(exp_threshold) * This(term);
+            auto rotated_term = relevant_generator.exp(exp_threshold, keep_norm) * This(term);
             if(threshold > 0.0) {
                 rotated_term = rotated_term.apply_threshold(threshold);
             }
@@ -431,7 +438,7 @@ public:
     }
 
     inline This rotate_by(const This& generator, const double exp_threshold=0.0, const double threshold=0.0) const {
-        return this->transform(generator, exp_threshold, threshold);
+        return this->transform(generator, exp_threshold, threshold, true);
     }
 
     inline This diagonal_terms() const {
