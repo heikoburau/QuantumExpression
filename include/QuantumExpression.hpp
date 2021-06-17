@@ -620,25 +620,10 @@ public:
     inline This extract_noncommuting_with(const This& other) const {
         This result;
 
-        if(QuantumString::QuantumOperator::is_pauli_operator()) {
-            for(const auto& my_term : *this) {
-                for(const auto& other_term : other) {
-                    if(!my_term.first.commutes_with(other_term.first)) {
-                        if(result.terms.find(my_term.first) == result.terms.end()) {
-                            result.insert(my_term);
-                        }
-                    }
-                }
-            }
-        }
-        else {
-            for(const auto& my_term : *this) {
-                for(const auto& other_term : other) {
-                    const auto a = This(my_term);
-                    const auto b = This(other_term);
-                    if(a * b - b * a != 0.0) {
-                        result.insert(my_term);
-                    }
+        for(const auto& my_term : *this) {
+            for(const auto& other_term : other) {
+                if(!my_term.first.commutes_with(other_term.first)) {
+                    result.insert(my_term);
                 }
             }
         }
