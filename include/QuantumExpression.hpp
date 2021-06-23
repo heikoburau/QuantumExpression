@@ -462,6 +462,19 @@ public:
         ));
     }
 
+    inline This strip() const {
+        This result;
+        result.reserve(this->size());
+
+        for(const auto& term : this->terms) {
+            if(term.first != QuantumString()) {
+                result.insert(term);
+            }
+        }
+
+        return result;
+    }
+
     inline double max_norm() const {
         if(this->terms.empty()) {
             return 0.0;
