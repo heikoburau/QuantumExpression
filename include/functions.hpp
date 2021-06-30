@@ -381,4 +381,20 @@ inline decltype(auto) su2_su2_matrix(const PauliExpression& expr_a, const PauliE
 }
 
 
+inline PauliExpression make_classical_expression(const PauliExpression& expr) {
+    PauliExpression result;
+
+    for(const auto& term : expr) {
+        const auto is_yz = term.first.is_sigma_y() | term.first.is_sigma_z();
+
+        result.add(
+            term.second * term.first.complex_prefactor(),
+            FastPauliString(is_yz, is_yz)
+        );
+    }
+
+    return result;
+}
+
+
 } // quantum_expression

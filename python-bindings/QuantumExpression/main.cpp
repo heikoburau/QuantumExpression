@@ -241,4 +241,6 @@ PYBIND11_MODULE(_QuantumExpression, m)
     m.def("effective_matrix", effective_matrix, py::return_value_policy::reference_internal, "op"_a, "basis"_a, "trans_inv_length"_a = 0u);
 
     m.def("state_to_matrix", state_to_matrix);
+
+    m.def("make_classical_expression", make_classical_expression);
 }
