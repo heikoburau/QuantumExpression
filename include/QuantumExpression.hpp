@@ -630,6 +630,16 @@ public:
         return true;
     }
 
+    inline size_t hash() const {
+        size_t result = 0;
+
+        for(const auto& term : *this) {
+            result ^= std::hash<QuantumString>()(term.first);
+        }
+
+        return result;
+    }
+
     inline This extract_noncommuting_with(const This& other) const {
         This result;
 
