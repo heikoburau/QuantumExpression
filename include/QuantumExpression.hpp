@@ -513,6 +513,16 @@ public:
         return result;
     }
 
+    inline Coefficient apply_diag(const Configuration& conf) const {
+        Coefficient result(0.0);
+
+        for(const auto& term : *this) {
+            result += term.second * term.first.apply_diag(conf);
+        }
+
+        return result;
+    }
+
 #ifndef NO_PYTHON
 
     decltype(auto) matrix(const unsigned int N, const string basis) const {

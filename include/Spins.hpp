@@ -12,8 +12,8 @@ struct Spins {
     Spins() = default;
     Spins(type configuration) : configuration(configuration) {}
 
-    inline operator unsigned int() const {
-        return static_cast<unsigned int>(configuration);
+    inline operator type() const {
+        return configuration;
     }
 
     inline Spins flip(const int position) const {

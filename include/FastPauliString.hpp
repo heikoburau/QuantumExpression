@@ -256,6 +256,14 @@ struct FastPauliString {
         return {conf, factor};
     }
 
+    inline complex<double> apply_diag(Configuration conf) const {
+        if(bit_count((~conf) & this->is_sigma_z()) & 1lu) {
+            return -1.0;
+        }
+
+        return 1.0;
+    }
+
     inline void apply(complex<double>* out_state, complex<double>* in_state, const unsigned int dim_N) const {
         const auto prefactor = this->complex_prefactor();
         const auto is_flipping = ~this->is_diagonal_bitwise();

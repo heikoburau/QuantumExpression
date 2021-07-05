@@ -98,9 +98,9 @@ Sz = PauliExpression(0, 3).matrix(1, "paulis")
 def sparse_matrix(self, N, basis="spins", U_list=None):
     assert basis in ("spins", "paulis")
 
-    result = 0
-
     if basis == "paulis":
+        result = 0
+
         if U_list is None:
             U_list = [np.eye(4)] * N
         if not isinstance(U_list, (list, tuple)):
@@ -131,6 +131,7 @@ def sparse_matrix(self, N, basis="spins", U_list=None):
 
     is_fermionic = isinstance(self, FermionExpression)
     sparse_matrices = sparse_fermion_matrices if is_fermionic else sparse_pauli_matrices
+    result = sparse.diags([0], shape=(2**N, 2**N))
 
     for term in self:
         sparse_string = sparse.identity(2**N)

@@ -10,6 +10,10 @@
 #include <math.h>
 #include <stdint.h>
 
+#define __STDCPP_WANT_MATH_SPEC_FUNCS__ 1
+#include <cmath>
+
+
 
 namespace quantum_expression {
 
@@ -374,6 +378,43 @@ inline decltype(auto) su2_su2_matrix(const PauliExpression& expr_a, const PauliE
                     result(second_term.first.enumeration_index(), conf_idx) += first_term.second * second_term.second;
                 }
             }
+        }
+    }
+
+    return result;
+}
+
+
+// inline double binom(int n, int k) { return 1/((n+1)*std::beta(n-k+1,k+1)); }
+
+Eigen::SparseMatrix<complex<double>> make_spinful_matrix(
+    const PauliExpression& I_expr,
+    const unsigned int N_sub,
+    const unsigned int sector,
+    const unsigned int sub_size
+) {
+    using SparseMatrix = Eigen::SparseMatrix<complex<double>>;
+
+    // const auto sub_size = binom(N_sub, k);
+    const auto size = sub_size * sub_size;
+
+    SparseMatrix result(size, size);
+    // result.reserve(size);
+
+    auto idx = 0u;
+    for(auto s_i = 0ul; s_i < (1ul << N_sub); s_i++) {
+        if(static_cast<unsigned int>(bit_count(s_i)) != sector) {
+            continue;
+        }
+
+        for(auto s_j = 0ul; s_j < (1ul << N_sub); s_j++) {
+            if(static_cast<unsigned int>(bit_count(s_j)) != sector) {
+                continue;
+            }
+
+            result.insert(idx, idx) = I_expr.apply_diag((s_i << N_sub) + s_j);
+
+            idx++;
         }
     }
 

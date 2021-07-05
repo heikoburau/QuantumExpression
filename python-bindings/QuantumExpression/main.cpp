@@ -243,4 +243,5 @@ PYBIND11_MODULE(_QuantumExpression, m)
     m.def("state_to_matrix", state_to_matrix);
 
     m.def("make_classical_expression", make_classical_expression);
+    m.def("make_spinful_matrix", make_spinful_matrix);
 }
