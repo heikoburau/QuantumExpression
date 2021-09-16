@@ -74,6 +74,10 @@ struct FastPauliString {
 
             return {this->index, type};
         }
+
+        inline pair<int, int> operator->() const {
+            return *(*this);
+        }
     };
 
     inline FastPauliString() : a(0), b(0) {};
@@ -107,6 +111,24 @@ struct FastPauliString {
             detail::expand_bits_to_even_sites(this->a) |
             (detail::expand_bits_to_even_sites(this->b) << 1u)
         );
+    }
+
+    inline vector<int> get_indices() const {
+        vector<int> result;
+        for(auto it = this->begin_symbols(); it != this->end_symbols(); ++it) {
+            result.push_back((*it).first);
+        }
+
+        return result;
+    }
+
+    inline vector<int> get_types() const {
+        vector<int> result;
+        for(auto it = this->begin_symbols(); it != this->end_symbols(); ++it) {
+            result.push_back((*it).second);
+        }
+
+        return result;
     }
 
     inline void set_at(const unsigned int idx, const unsigned int type) {
