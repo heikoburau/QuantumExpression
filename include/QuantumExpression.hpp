@@ -13,6 +13,7 @@
 
 #endif
 
+#include <random>
 #include <unordered_map>
 #include <complex>
 #include <forward_list>
@@ -439,6 +440,64 @@ public:
 
     inline This rotate_by(const This& generator, const double exp_threshold=0.0, const double threshold=0.0) const {
         return this->transform(generator, exp_threshold, threshold, true);
+    }
+
+    inline This stochastic_transform(
+        const This& generator, const unsigned int num_samples, const unsigned int seed=0u
+    ) const {
+        if(this->is_numeric()) {
+            return This(this->get_coefficient());
+        }
+
+        std::mt19937 rng;
+        std::uniform_real_distribution<> dis(0.0, 1.0);
+
+        This result;
+
+        for(const auto& term : *this) {
+            rng.seed(seed);
+            This relevant_generator;
+
+            for(const auto& generator_term : generator) {
+                if(!term.first.commutes_with(generator_term.first)) {
+                    relevant_generator.insert({generator_term.first, 2.0 * generator_term.second});
+                }
+            }
+
+            This U;
+            for(auto i = 0u; i < num_samples; i++) {
+                Term sample(QuantumString(), 1.0);
+
+                for(auto h_0 : relevant_generator) {
+                    const auto alpha = h_0.second;
+                    const auto sinh_alpha = sinh(alpha);
+                    const auto cosh_alpha = cosh(alpha);
+                    const auto sgn_sinh_alpha = sinh_alpha / abs(sinh_alpha);
+                    const auto sgn_cosh_alpha = cosh_alpha / abs(cosh_alpha);
+                    const auto p_A = 1.0 / (1.0 + abs(sinh_alpha / cosh_alpha));
+
+                    if(dis(rng) < p_A) {
+                        sample.second *= sgn_cosh_alpha * (
+                            abs(cosh_alpha) + abs(sinh_alpha)
+                        );
+                    } else {
+                        const auto factor_and_string = sample.first * h_0.first;
+
+                        sample.first = factor_and_string.second;
+                        sample.second *= sgn_sinh_alpha * (
+                            abs(cosh_alpha) + abs(sinh_alpha)
+                        ) * 1.0i * factor_and_string.first;
+                    }
+                }
+
+                U += Term(sample);
+            }
+            U *= 1.0 / num_samples;
+
+            result += This(U) * This(term);
+        }
+
+        return result.crop(1e-14);
     }
 
     inline This diagonal_terms() const {
