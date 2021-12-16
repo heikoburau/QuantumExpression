@@ -486,7 +486,7 @@ public:
                         sample.first = factor_and_string.second;
                         sample.second *= sgn_sinh_alpha * (
                             abs(cosh_alpha) + abs(sinh_alpha)
-                        ) * 1.0i * factor_and_string.first;
+                        ) * factor_and_string.first;
                     }
                 }
 

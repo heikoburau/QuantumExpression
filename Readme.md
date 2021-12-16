@@ -1,8 +1,18 @@
 QuantumExpression
 =================
 
-Evaluating expressions of spin-1/2- and spinless-fermion operators.
+Evaluating arbitrary expressions of spin-1/2 (Pauli) operators and spinless fermions in a natural way.
 `QuantumExpression` is a C++ library with a python interface.
+
+Features
+========
+
+- Natural syntax for composing arbitrary operators like Hamiltonians or observables.
+- Convertable to dense or sparse matrices.
+- Focus on high performance of operator manipulations, e.g. multiplication, thanks to optimized hash functions.
+- Superior memory efficiency compared to sparse matrices for quasi-local operators.
+- Specific functions like unitrary rotation, hermitian conjugation, partial trace, etc. included.
+
 
 Installation
 ============
@@ -16,25 +26,31 @@ Example
 =======
 
 ```python
-from QuantumExpression import cr_fermion, an_fermion, num_fermion
-from QuantumExpression import commutator, frobenius_norm
+from QuantumExpression import (
+    sigma_plus, sigma_minus, sigma_z,
+    commutator, frobenius_norm
+)
+import numpy as np
 
 L = 10
 
 H_0 = -1 / 2 * sum(
-    (cr_fermion(i) * an_fermion(i + 1)) + 
-    (cr_fermion(i) * an_fermion(i + 1)).dagger
+    (sigma_plus(i) * sigma_minus(i + 1)) +
+    (sigma_plus(i) * sigma_minus(i + 1)).dagger
     for i in range(L - 1)
 ) + sum(
-    num_fermion(i) for i in range(L)
+    sigma_z(i) for i in range(L)
 )
 
 V = 0.1 * sum(
-    num_fermion(i) * num_fermion(i + 1)
+    sigma_z(i) * sigma_z(i + 1)
     for i in range(L - 1)
 )
 
 H = H_0 + V
 
 print(frobenius_norm(commutator(H_0, H), L))
+
+H_m = H.matrix(L)
+print(np.trace(H_m @ H_m.T.conj()))
 ```
