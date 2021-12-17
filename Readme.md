@@ -6,7 +6,7 @@ Evaluates arbitrary expressions of spin-1/2 (Pauli) operators and spinless fermi
 Implemented with strong focus on high performance of operator manipulations, e.g. multiplication, by utilizing optimized hash tables.
 
 Features
-========
+--------
 
 - Natural syntax for composing arbitrary operators like Hamiltonians or observables.
 - Convertable to dense or sparse matrices.
@@ -15,7 +15,7 @@ Features
 
 
 Installation
-============
+------------
 
 ```bash
 cd python-bindings
@@ -23,7 +23,7 @@ python setup.py install
 ```
 
 Example
-=======
+-------
 
 ```python
 from QuantumExpression import (
