@@ -3,7 +3,7 @@ QuantumExpression
 
 Evaluates arbitrary expressions of spin-1/2 (Pauli) operators and spinless fermions in a physicists-friendly way.
 `QuantumExpression` is a C++ library with a python interface.
-Implemented with strong focus on high performance of operator manipulations, e.g. multiplication, e.g. by utilizing optimized hash tables.
+Implemented with strong focus on high performance of operator manipulations, e.g. multiplication, by utilizing optimized hash tables.
 
 Features
 ========
