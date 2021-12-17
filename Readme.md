@@ -9,7 +9,7 @@ Features
 
 - Natural syntax for composing arbitrary operators like Hamiltonians or observables.
 - Convertable to dense or sparse matrices.
-- Focus on high performance of operator manipulations, e.g. multiplication, thanks to optimized hash functions.
+- Focus on high performance of operator manipulations, e.g. multiplication, by utilizing optimized hash tables.
 - Superior memory efficiency compared to sparse matrices for quasi-local operators.
 - Specific functions like unitrary rotation, hermitian conjugation, partial trace, etc. included.
 
